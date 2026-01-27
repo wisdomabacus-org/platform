@@ -9,7 +9,13 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "db:start": "bunx supabase start",
+    "db:stop": "bunx supabase stop",
+    "db:reset": "bunx supabase db reset",
+    "db:push": "bunx supabase db push",
+    "db:status": "bunx supabase status",
+    "db:types": "turbo run generate:types --filter=@platform/database"
   },
   "devDependencies": {
     "turbo": "latest",
