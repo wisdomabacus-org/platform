@@ -15,6 +15,7 @@ export interface User {
   city: string | null;
   state: string | null;
   isProfileComplete: boolean;
+  dateOfBirth: string | null;
   lastLogin: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -28,4 +29,6 @@ export interface UserFilters {
   authProvider?: string;
   isProfileComplete?: boolean;
   isVerified?: boolean;
+  page?: number;
+  limit?: number;
 }

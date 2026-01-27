@@ -3,59 +3,64 @@ import { supabase } from '@/lib/supabase';
 import { ExamSession, ExamSessionFilters } from '../types/exam-sessions.types';
 
 export const examSessionsService = {
-    getActiveSessions: async () => {
-        // Fetch only active/ongoing sessions for real-time monitoring
-        // We assume 'started' status or relying on start/end times
-        // We join with profiles for user info, and conditionally join exams if possible.
-        // Supabase optional joins on multiple foreign keys (competition_id, mock_test_id) need careful handling.
+    getActiveSessions: async (filters: ExamSessionFilters = {}) => {
+        const { status, page = 0, limit = 20 } = filters;
 
-        // Simplification: Fetch raw and map. 
-        // Ideally we'd use a View for this to unify exam titles.
-
-        // We'll try to fetch with competition and mock_test joins.
-        const { data, error } = await supabase
+        // Use a simpler query if specific session monitoring is needed.
+        // Joining through submissions to get titles.
+        let query = supabase
             .from('exam_sessions')
             .select(`
-            *,
-            profile:profiles(student_name),
-            submission:submissions(
-                 competition:competitions(title),
-                 mock_test:mock_tests(title)
-            )
-        `)
-            .is('status', null) // weirdly, exam_sessions might use null for active? or 'in_progress'
-            // Checking schema: status is string | null. 
-            // Let's assume non-null 'completed' means done. 
-            // Or check timestamps.
-            .filter('status', 'in', '("started","in_progress")')
-            .order('start_time', { ascending: false });
+                *,
+                profile:profiles(student_name),
+                submission:submissions(
+                    competition:competitions(title),
+                    mock_test:mock_tests(title)
+                )
+            `, { count: 'exact' });
 
-        if (error) {
-            // Fallback for empty status if schema differs
-            console.error(error);
-            return [];
+        if (status && status !== 'active') {
+            query = query.eq('status', status);
+        } else {
+            // Default active statuses
+            query = query.filter('status', 'in', '("started","in_progress")');
         }
 
-        return data.map((s: any) => {
-            // Submission link gives us the exam title
+        const from = page * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await query
+            .order('start_time', { ascending: false })
+            .range(from, to);
+
+        if (error) {
+            console.error(error);
+            return { data: [], total: 0 };
+        }
+
+        const mapped = (data || []).map((s: any) => {
             const title = s.submission?.competition?.title || s.submission?.mock_test?.title || 'Unknown Exam';
 
             return {
                 id: s.id,
                 userId: s.user_id,
                 userName: s.profile?.student_name || '—',
-
                 examId: s.exam_id,
                 examType: s.exam_type,
                 examTitle: title,
-
                 startTime: new Date(s.start_time),
                 endTime: new Date(s.end_time),
-
-                status: s.status || 'Active',
+                status: s.status || 'active',
                 isLocked: s.is_locked || false,
             } as ExamSession;
         });
+
+        return {
+            data: mapped,
+            total: count || 0,
+            page,
+            limit
+        };
     },
 
     // Method to force finish a session

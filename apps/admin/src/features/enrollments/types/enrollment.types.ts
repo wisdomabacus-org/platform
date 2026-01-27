@@ -26,4 +26,6 @@ export interface EnrollmentFilters {
   search?: string; // Search by user name/competition
   competitionId?: string;
   isPaymentConfirmed?: boolean;
+  page?: number;
+  limit?: number;
 }

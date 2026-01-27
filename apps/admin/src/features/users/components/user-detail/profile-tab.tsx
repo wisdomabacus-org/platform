@@ -23,7 +23,7 @@ export function UserProfileTab({ user }: Props) {
                         <div className="text-sm">{user.parentName || '—'}</div>
 
                         <div className="text-sm font-medium text-muted-foreground">Date of Birth</div>
-                        <div className="text-sm">— (Not in type yet)</div>
+                        <div className="text-sm">{user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : '—'}</div>
 
                         <div className="text-sm font-medium text-muted-foreground">Grade</div>
                         <div className="text-sm">{user.studentGrade || '—'}</div>

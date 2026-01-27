@@ -1,11 +1,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
-interface Props {
-    userId: string;
-}
 
-export function UserActivityTab({ userId }: Props) {
+
+export function UserActivityTab() {
     return (
         <div className="space-y-6">
             <Card>

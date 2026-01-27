@@ -11,13 +11,6 @@ import {
 } from '@/shared/components/ui/dialog';
 import { Label } from '@/shared/components/ui/label';
 import { Input } from '@/shared/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/shared/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 

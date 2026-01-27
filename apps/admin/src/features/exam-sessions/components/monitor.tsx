@@ -1,86 +1,75 @@
 
-import { useMemo } from 'react';
-import {
-    useReactTable,
-    getCoreRowModel,
-    flexRender,
-} from '@tanstack/react-table';
-
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/shared/components/ui/table';
+import { useState, useMemo } from 'react';
+import { DataTable } from '@/shared/components/data-table/DataTable';
 import { useActiveExamSessions, useForceFinishSession } from '../hooks/use-exam-sessions.ts';
 import { examSessionColumns } from './columns';
 import { Loader2, MonitorPlay } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/shared/components/ui/select';
 
 export function ExamSessionsMonitor() {
-    const { data = [], isLoading, refetch } = useActiveExamSessions();
+    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
+    const [status, setStatus] = useState<string>('active');
+
+    const filters = {
+        page: pagination.pageIndex,
+        limit: pagination.pageSize,
+        status: status === 'all' ? undefined : status,
+    };
+
+    const { data: response, isLoading, refetch } = useActiveExamSessions(filters);
     const { mutate: forceFinish } = useForceFinishSession();
 
     const columns = useMemo(() => examSessionColumns(forceFinish), [forceFinish]);
 
-    const table = useReactTable({
-        data,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    });
-
-    if (isLoading) {
-        return <div className="flex h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-    }
+    const handleStatusChange = (val: string) => {
+        setStatus(val);
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    };
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <MonitorPlay className="h-5 w-5 text-green-500" />
-                    Active Sessions ({data.length})
+                    Sessions ({response?.total || 0})
                 </h2>
-                <Button variant="ghost" size="sm" onClick={() => refetch()}>
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-4">
+                    <Select value={status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="active">Active Only</SelectItem>
+                            <SelectItem value="all">All Sessions</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={() => refetch()}>
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
-            <div className="rounded-md border bg-background">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((hg) => (
-                            <TableRow key={hg.id}>
-                                {hg.headers.map((h) => (
-                                    <TableHead key={h.id}>
-                                        {flexRender(h.column.columnDef.header, h.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                                    No active exams at the moment.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+            {isLoading ? (
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+            ) : (
+                <DataTable
+                    columns={columns}
+                    data={response?.data || []}
+                    rowCount={response?.total || 0}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                />
+            )}
         </div>
     );
 }

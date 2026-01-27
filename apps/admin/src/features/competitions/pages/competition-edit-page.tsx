@@ -2,7 +2,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { CompetitionForm } from '../components/competition-form';
-import { useCompetition, useUpdateCompetition } from '../hooks/use-competitions';
+import { useCompetition, useUpdateCompetition, useUpdateCompetitionSyllabus, useUpdateCompetitionPrizes } from '../hooks/use-competitions';
 import { ROUTES } from '@/config/constants';
 import { CompetitionFormValues } from '../types/competition-schema';
 import { Loader2 } from 'lucide-react';
@@ -11,7 +11,9 @@ export default function CompetitionEditPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { data: competition, isLoading } = useCompetition(id!);
-    const { mutate: updateCompetition, isPending } = useUpdateCompetition();
+    const { mutateAsync: updateCompetition, isPending } = useUpdateCompetition();
+    const { mutateAsync: updateSyllabus } = useUpdateCompetitionSyllabus();
+    const { mutateAsync: updatePrizes } = useUpdateCompetitionPrizes();
 
     if (isLoading) {
         return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -21,19 +23,31 @@ export default function CompetitionEditPage() {
         return <div>Competition not found</div>;
     }
 
-    const handleSubmit = (values: CompetitionFormValues) => {
+    const handleSubmit = async (values: CompetitionFormValues) => {
+        const { syllabus, prizes, ...basicInfo } = values;
+
         const payload: any = {
-            ...values,
+            ...basicInfo,
             exam_date: values.exam_date.toISOString(),
             registration_start_date: values.registration_start_date.toISOString(),
             registration_end_date: values.registration_end_date.toISOString(),
         };
 
-        updateCompetition({ id: id!, data: payload }, {
-            onSuccess: () => {
-                navigate(ROUTES.COMPETITIONS);
+        try {
+            await updateCompetition({ id: id!, data: payload });
+
+            if (syllabus) {
+                await updateSyllabus({ id: id!, topics: syllabus });
             }
-        });
+
+            if (prizes) {
+                await updatePrizes({ id: id!, prizes: prizes });
+            }
+
+            navigate(ROUTES.COMPETITIONS);
+        } catch (error) {
+            console.error('Failed to update competition:', error);
+        }
     };
 
     return (

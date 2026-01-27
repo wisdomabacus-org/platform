@@ -23,19 +23,10 @@ export default function MockTestEditPage() {
     updateMockTest({ id: id!, data: values });
   };
 
-  const initialValues: Partial<MockTestFormValues> = {
-    title: mockTest.title,
-    description: mockTest.description,
-    gradeLevel: mockTest.gradeLevel,
-    durationMinutes: mockTest.durationMinutes,
-    isFree: mockTest.isFree,
-    isPublished: mockTest.isPublished
-  };
-
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <MockTestForm
-        initial={initialValues}
+        initial={mockTest as any}
         onCancel={() => navigate(ROUTES.MOCK_TESTS)}
         onSave={handleSave}
         isLoading={isUpdating}

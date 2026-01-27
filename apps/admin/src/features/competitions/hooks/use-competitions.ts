@@ -5,7 +5,7 @@ import { CompetitionFilters, CompetitionInsert, CompetitionUpdate } from '../typ
 import { QUERY_KEYS } from '@/config/constants';
 import { toast } from 'sonner';
 
-export function useCompetitions(filters?: CompetitionFilters) {
+export function useCompetitions(filters?: CompetitionFilters & { page?: number; limit?: number }) {
     return useQuery({
         queryKey: [QUERY_KEYS.COMPETITIONS, filters],
         queryFn: () => competitionsService.getAll(filters),
@@ -63,6 +63,62 @@ export function useDeleteCompetition() {
         },
         onError: (error: any) => {
             toast.error(error.message || 'Failed to delete competition');
+        },
+    });
+}
+
+export function useUpdateCompetitionSyllabus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, topics }: { id: string; topics: any[] }) =>
+            competitionsService.updateSyllabus(id, topics),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id] });
+            toast.success('Syllabus updated successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || 'Failed to update syllabus');
+        },
+    });
+}
+
+export function useUpdateCompetitionPrizes() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, prizes }: { id: string; prizes: any[] }) =>
+            competitionsService.updatePrizes(id, prizes),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id] });
+            toast.success('Prizes updated successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || 'Failed to update prizes');
+        },
+    });
+}
+
+export function useCompetitionQuestionBanks(id: string) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.COMPETITIONS, id, 'question-banks'],
+        queryFn: () => competitionsService.getQuestionBanks(id),
+        enabled: !!id,
+    });
+}
+
+export function useAssignQuestionBanks() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, assignments }: { id: string; assignments: any[] }) =>
+            competitionsService.assignQuestionBanks(id, assignments),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id, 'question-banks'] });
+            toast.success('Question banks assigned successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error.message || 'Failed to assign question banks');
         },
     });
 }

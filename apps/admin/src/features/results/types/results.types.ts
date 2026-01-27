@@ -41,4 +41,6 @@ export interface SubmissionFilters {
   search?: string; // Search user or exam title
   status?: string;
   dateRange?: { from: Date; to: Date };
+  page?: number;
+  limit?: number;
 }

@@ -4,10 +4,12 @@ import { questionBanksService } from '../api/question-banks.service';
 import { QUERY_KEYS } from '@/config/constants';
 import { toast } from 'sonner';
 
-export function useQuestionBanks() {
+import { QuestionBankFilters } from '../types/question-bank.types';
+
+export function useQuestionBanks(filters: QuestionBankFilters = {}) {
     return useQuery({
-        queryKey: [QUERY_KEYS.QUESTION_BANKS],
-        queryFn: questionBanksService.getAll,
+        queryKey: [QUERY_KEYS.QUESTION_BANKS, filters],
+        queryFn: () => questionBanksService.getAll(filters),
     });
 }
 
@@ -99,7 +101,7 @@ export function useUpdateQuestion() {
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: any }) =>
             questionBanksService.updateQuestion(id, data),
-        onSuccess: (data, variables) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({
                 queryKey: [QUERY_KEYS.QUESTION_BANKS]
             });

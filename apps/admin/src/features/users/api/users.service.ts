@@ -3,40 +3,41 @@ import { supabase } from '@/lib/supabase';
 import { User, UserFilters } from '../types/user.types';
 
 export const usersService = {
-    getAll: async (filters?: UserFilters) => {
+    getAll: async (filters: UserFilters = {}) => {
+        const { search, authProvider, isProfileComplete, isVerified, page = 0, limit = 10 } = filters;
+
         let query = supabase
             .from('profiles')
             .select('*', { count: 'exact' });
 
-        if (filters?.authProvider) {
-            query = query.eq('auth_provider', filters.authProvider);
+        if (authProvider) {
+            query = query.eq('auth_provider', authProvider);
         }
 
-        if (filters?.isProfileComplete !== undefined) {
-            query = query.eq('is_profile_complete', filters.isProfileComplete);
+        if (isProfileComplete !== undefined) {
+            query = query.eq('is_profile_complete', isProfileComplete);
         }
 
-        if (filters?.isVerified !== undefined) {
-            query = query.eq('email_verified', filters.isVerified);
+        if (isVerified !== undefined) {
+            query = query.eq('email_verified', isVerified);
         }
 
-        if (filters?.search) {
-            const searchTerm = `%${filters.search}%`;
+        if (search) {
+            const searchTerm = `%${search}%`;
             query = query.or(`uid.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm},student_name.ilike.${searchTerm}`);
         }
 
-        // Default sorting
-        query = query.order('created_at', { ascending: false });
+        const from = page * limit;
+        const to = from + limit - 1;
 
-        // Pagination could be added here, currently fetching all for MVP or limited list
-        // query = query.range(0, 49); // e.g.
-
-        const { data, error, count } = await query;
+        const { data, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
 
         return {
-            data: data.map((profile: any) => ({
+            data: (data || []).map((profile: any) => ({
                 id: profile.id,
                 uid: profile.uid,
                 authProvider: profile.auth_provider,
@@ -50,11 +51,14 @@ export const usersService = {
                 city: profile.city,
                 state: profile.state,
                 isProfileComplete: profile.is_profile_complete || false,
+                dateOfBirth: profile.date_of_birth || null,
                 lastLogin: profile.last_login ? new Date(profile.last_login) : null,
                 createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
                 updatedAt: profile.updated_at ? new Date(profile.updated_at) : new Date(),
             })) as User[],
-            count
+            total: count || 0,
+            page,
+            limit
         };
     },
 
@@ -81,6 +85,7 @@ export const usersService = {
             city: data.city,
             state: data.state,
             isProfileComplete: data.is_profile_complete || false,
+            dateOfBirth: data.date_of_birth || null,
             lastLogin: data.last_login ? new Date(data.last_login) : null,
             createdAt: data.created_at ? new Date(data.created_at) : new Date(),
             updatedAt: data.updated_at ? new Date(data.updated_at) : new Date(),

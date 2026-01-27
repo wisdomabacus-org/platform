@@ -1,3 +1,4 @@
+
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Separator } from '@/shared/components/ui/separator';
@@ -8,6 +9,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/shared/components/ui/form';
 import { mockTestSchema, MockTestFormValues } from '../../types/mock-test-schema';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 
 interface Props {
   initial?: Partial<MockTestFormValues>;
@@ -18,83 +20,49 @@ interface Props {
 
 export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
   const form = useForm<MockTestFormValues>({
-    resolver: zodResolver(mockTestSchema),
+    resolver: zodResolver(mockTestSchema) as any,
     defaultValues: {
       title: initial?.title || '',
       description: initial?.description || '',
-      gradeLevel: initial?.gradeLevel || 1,
-      durationMinutes: initial?.durationMinutes || 60,
-      isFree: initial?.isFree || false,
-      isPublished: initial?.isPublished || false,
+      difficulty: initial?.difficulty || 'Beginner',
+      duration: initial?.duration || 60,
+      total_questions: initial?.total_questions || 0,
+      min_grade: initial?.min_grade || 1,
+      max_grade: initial?.max_grade || 12,
+      is_active: initial?.is_active ?? true,
+      is_published: initial?.is_published ?? false,
+      is_locked: initial?.is_locked ?? false,
       tags: initial?.tags || [],
+      sort_order: initial?.sort_order || 0,
     },
   });
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-4xl p-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           {initial ? 'Edit Mock Test' : 'Create Mock Test'}
         </h1>
         <p className="text-muted-foreground">
-          Define core details. Add questions in the next step.
+          Define core details for this mock test.
         </p>
       </div>
 
       <Separator className="my-6" />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSave)} className="space-y-8">
-          <section className="space-y-4">
-            <h3 className="text-lg font-medium">Core Details</h3>
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Abacus Practice Set 01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Short summary or notes." rows={3} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </section>
-
-          <Separator className="my-6" />
-
-          <section className="space-y-4">
-            <h3 className="text-lg font-medium">Configuration</h3>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <form onSubmit={form.handleSubmit(onSave as any)} className="space-y-8">
+          <section className="space-y-6">
+            <h3 className="text-lg font-medium">Basic Information</h3>
+            <div className="grid gap-6 md:grid-cols-2">
               <FormField
-                control={form.control}
-                name="gradeLevel"
+                control={form.control as any}
+                name="title"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Grade</FormLabel>
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={12}
-                        {...field}
-                        onChange={e => field.onChange(Number(e.target.value))}
-                      />
+                      <Input placeholder="e.g. Abacus Level 1 Final Practice" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -102,29 +70,95 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
               />
 
               <FormField
-                control={form.control}
-                name="durationMinutes"
+                control={form.control as any}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Details about this mock test..." rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="difficulty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duration (minutes)</FormLabel>
+                    <FormLabel>Difficulty</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration (Minutes)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        {...field}
-                        onChange={e => field.onChange(Number(e.target.value))}
-                      />
+                      <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="min_grade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Min Grade</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={12} {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="max_grade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Max Grade</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={12} {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+          </section>
 
-            <div className="flex flex-wrap items-center gap-6">
+          <Separator />
+
+          <section className="space-y-6">
+            <h3 className="text-lg font-medium">Settings & Visibility</h3>
+            <div className="grid gap-6 md:grid-cols-3">
               <FormField
-                control={form.control}
-                name="isFree"
+                control={form.control as any}
+                name="is_locked"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
@@ -134,17 +168,16 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Free mock test
-                      </FormLabel>
+                      <FormLabel>Paid (Locked)</FormLabel>
+                      <FormDescription>Requires enrollment or purchase</FormDescription>
                     </div>
                   </FormItem>
                 )}
               />
 
               <FormField
-                control={form.control}
-                name="isPublished"
+                control={form.control as any}
+                name="is_published"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
@@ -154,9 +187,27 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Published
-                      </FormLabel>
+                      <FormLabel>Published</FormLabel>
+                      <FormDescription>Visible to users</FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Active</FormLabel>
+                      <FormDescription>Allow new attempts</FormDescription>
                     </div>
                   </FormItem>
                 )}
@@ -164,20 +215,14 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
             </div>
           </section>
 
-          {/* Footer spacer */}
-          <div className="h-24" />
-
-          {/* Sticky footer actions */}
-          <div className="bg-background fixed right-0 bottom-0 left-0 z-10 border-t">
-            <div className="mx-auto flex max-w-7xl items-center justify-end gap-3 p-4">
-              <Button variant="outline" type="button" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save and Add Questions
-              </Button>
-            </div>
+          <div className="flex justify-end gap-4 p-4">
+            <Button variant="outline" type="button" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {initial ? 'Update Mock Test' : 'Create Mock Test'}
+            </Button>
           </div>
         </form>
       </Form>

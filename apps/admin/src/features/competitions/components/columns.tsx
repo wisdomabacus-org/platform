@@ -25,20 +25,6 @@ function fmtDate(d: Date | string) {
     year: 'numeric',
   });
 }
-function fmtDateTime(d: Date | string, t?: string) {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  const base = date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  if (!t) return base;
-  const [hh, mm] = t.split(':');
-  const dt = new Date(date);
-  dt.setHours(Number(hh), Number(mm));
-  const time = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  return `${base} at ${time}`;
-}
 
 export const competitionColumns: ColumnDef<Competition>[] = [
   // Selection column
@@ -78,10 +64,10 @@ export const competitionColumns: ColumnDef<Competition>[] = [
     },
   },
   {
-    accessorKey: 'isPublished',
+    accessorKey: 'is_published',
     header: 'Status',
     cell: ({ row }) => {
-      const p = row.original.isPublished;
+      const p = row.original.is_published;
       return (
         <Badge variant={p ? 'default' : 'secondary'}>{p ? 'Published' : 'Draft'}</Badge>
       );
@@ -89,36 +75,36 @@ export const competitionColumns: ColumnDef<Competition>[] = [
     size: 110,
   },
   {
-    accessorKey: 'applicableGrades',
+    accessorKey: 'min_grade',
     header: 'Grades',
-    cell: ({ row }) => (row.original.applicableGrades || []).join(', '),
+    cell: ({ row }) => `${row.original.min_grade} - ${row.original.max_grade}`,
     size: 120,
   },
   {
-    accessorKey: 'enrollmentFee',
+    accessorKey: 'enrollment_fee',
     header: 'Fee',
-    cell: ({ row }) => currency(row.original.enrollmentFee),
+    cell: ({ row }) => currency(Number(row.original.enrollment_fee)),
     size: 90,
   },
   {
     id: 'registration',
     header: 'Registration',
     cell: ({ row }) =>
-      `${fmtDate(row.original.registrationStartDate)} - ${fmtDate(row.original.registrationEndDate)}`,
+      `${fmtDate(row.original.registration_start_date)} - ${fmtDate(row.original.registration_end_date)}`,
     size: 220,
   },
   {
-    accessorKey: 'competitionDate',
+    accessorKey: 'exam_date',
     header: 'Exam Date',
     cell: ({ row }) =>
-      fmtDateTime(row.original.competitionDate, row.original.examStartTime),
+      fmtDate(row.original.exam_date),
     size: 200,
   },
   {
-    accessorKey: 'isResultsPublished',
+    accessorKey: 'is_results_published',
     header: 'Results',
     cell: ({ row }) => {
-      const r = row.original.isResultsPublished;
+      const r = row.original.is_results_published;
       return (
         <Badge variant={r ? 'outline' : 'secondary'}>{r ? 'Published' : 'Pending'}</Badge>
       );
@@ -133,7 +119,7 @@ export const competitionColumns: ColumnDef<Competition>[] = [
     size: 48,
     cell: ({ row }) => {
       const c = row.original;
-      const published = c.isPublished;
+      const published = c.is_published;
 
       return (
         <DropdownMenu>

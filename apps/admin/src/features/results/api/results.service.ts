@@ -1,6 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
-import { CompetitionResultsRow, Submission, SubmissionFilters, LeaderboardRow } from '../types/results.types';
+import { Submission, SubmissionFilters, LeaderboardRow } from '../types/results.types';
 
 export const resultsService = {
     // Existing methods for Competitions Results
@@ -52,39 +52,44 @@ export const resultsService = {
     },
 
     // New methods for Submissions Dashboard
-    getAllSubmissions: async (filters?: SubmissionFilters) => {
+    getAllSubmissions: async (filters: SubmissionFilters = {}) => {
+        const { status, examType, dateRange, page = 0, limit = 10 } = filters;
+
         let query = supabase
             .from('submissions')
             .select(`
-            *,
-            profile:profiles(student_name),
-            competition:competitions(title),
-            mock_test:mock_tests(title)
-        `, { count: 'exact' });
+                *,
+                profile:profiles(student_name),
+                competition:competitions(title),
+                mock_test:mock_tests(title)
+            `, { count: 'exact' });
 
-        if (filters?.status) {
-            query = query.eq('status', filters.status);
+        if (status) {
+            query = query.eq('status', status);
         }
 
-        // examType filtering implies checking nullity of foreign keys or 'exam_type' column
-        if (filters?.examType) {
-            query = query.eq('exam_type', filters.examType);
+        if (examType) {
+            query = query.eq('exam_type', examType);
         }
 
-        if (filters?.dateRange?.from) {
-            query = query.gte('submitted_at', filters.dateRange.from.toISOString());
+        if (dateRange?.from) {
+            query = query.gte('submitted_at', dateRange.from.toISOString());
         }
-        if (filters?.dateRange?.to) {
-            query = query.lte('submitted_at', filters.dateRange.to.toISOString());
+        if (dateRange?.to) {
+            query = query.lte('submitted_at', dateRange.to.toISOString());
         }
 
-        query = query.order('submitted_at', { ascending: false });
+        const from = page * limit;
+        const to = from + limit - 1;
 
-        const { data, error, count } = await query;
+        const { data, error, count } = await query
+            .order('submitted_at', { ascending: false })
+            .range(from, to);
+
         if (error) throw error;
 
         return {
-            data: data.map((s: any) => ({
+            data: (data || []).map((s: any) => ({
                 id: s.id,
                 userId: s.user_id,
                 userName: s.profile?.student_name || '—',
@@ -98,7 +103,9 @@ export const resultsService = {
                 submittedAt: s.submitted_at ? new Date(s.submitted_at) : new Date(s.created_at),
                 startedAt: new Date(s.started_at),
             })) as Submission[],
-            count
+            total: count || 0,
+            page,
+            limit
         };
     }
 };

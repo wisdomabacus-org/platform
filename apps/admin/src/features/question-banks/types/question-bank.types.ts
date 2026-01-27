@@ -30,3 +30,12 @@ export interface Question {
     marks: number;
     createdAt: Date;
 }
+
+export interface QuestionBankFilters {
+    search?: string;
+    minGrade?: number;
+    maxGrade?: number;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+}

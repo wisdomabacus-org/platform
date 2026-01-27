@@ -21,4 +21,6 @@ export interface ExamSession {
 
 export interface ExamSessionFilters {
     status?: string; // 'active' (default), 'completed'
+    page?: number;
+    limit?: number;
 }

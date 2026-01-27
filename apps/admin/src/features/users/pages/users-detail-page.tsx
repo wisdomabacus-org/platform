@@ -58,7 +58,7 @@ export default function UsersDetailPage() {
                         <UserEnrollmentsTab userId={user.id} />
                     </TabsContent>
                     <TabsContent value="activity">
-                        <UserActivityTab userId={user.id} />
+                        <UserActivityTab />
                     </TabsContent>
                 </div>
             </Tabs>

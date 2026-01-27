@@ -19,14 +19,15 @@ export const mockEnrollments: Enrollment[] = Array.from({ length: 64 }).map((_, 
 
   return {
     id: `${10000 + i}`,
+    userId: `u-${i}`,
     userName: `${n} ${i}`,
     userPhone: `+91-98${(10000000 + i).toString().slice(0, 8)}`,
     competitionId: comp.id,
     competitionTitle: comp.title,
-    grade: ((i % 10) + 1),
+    competitionSeason: '2024',
     status,
-    paymentStatus: pay,
-    orderId: `ORD-${202500 + i}`,
+    isPaymentConfirmed: pay === 'success',
+    paymentId: `pay-${i}`,
     registeredAt: dateMinus(i),
   };
 });

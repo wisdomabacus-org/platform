@@ -10,8 +10,8 @@ export function useResultCompetitions() {
     return useQuery({
         queryKey: [QUERY_KEYS.COMPETITIONS, 'results-list'],
         queryFn: async () => {
-            const all = await competitionsService.getAll();
-            return all.filter(c => ['upcoming', 'ongoing', 'completed', 'published'].includes(c.status));
+            const { data } = await competitionsService.getAll();
+            return (data || []).filter((c: any) => ['upcoming', 'ongoing', 'completed', 'published', 'open', 'live'].includes(c.status));
         }
     });
 }

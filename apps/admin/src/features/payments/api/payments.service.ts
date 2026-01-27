@@ -1,44 +1,44 @@
-
 import { supabase } from '@/lib/supabase';
 import { Payment, PaymentFilters, RevenueStats } from '../types/payment.types';
 
 export const paymentsService = {
-    getAll: async (filters?: PaymentFilters) => {
+    getAll: async (filters: PaymentFilters = {}) => {
+        const { status, search, dateRange, page = 0, limit = 10 } = filters;
+
         let query = supabase
             .from('payments')
             .select(`
-        *,
-        profile:profiles(student_name, phone, email)
-      `, { count: 'exact' });
+                *,
+                profile:profiles(student_name, phone, email)
+            `, { count: 'exact' });
 
-        if (filters?.status) {
-            query = query.eq('status', filters.status);
+        if (status) {
+            query = query.eq('status', status);
         }
 
-        if (filters?.search) {
-            const s = `%${filters.search}%`;
-            // Search in payment fields or joined user fields
-            // Typically needs an OR with joined fields which is tricky without !inner or RPC
-            // For MVP, we search payment IDs and gateway IDs.
+        if (search) {
+            const s = `%${search}%`;
             query = query.or(`id.ilike.${s},razorpay_order_id.ilike.${s},razorpay_payment_id.ilike.${s}`);
         }
 
-        if (filters?.dateRange?.from) {
-            query = query.gte('created_at', filters.dateRange.from.toISOString());
+        if (dateRange?.from) {
+            query = query.gte('created_at', dateRange.from.toISOString());
         }
-        if (filters?.dateRange?.to) {
-            query = query.lte('created_at', filters.dateRange.to.toISOString());
+        if (dateRange?.to) {
+            query = query.lte('created_at', dateRange.to.toISOString());
         }
 
-        // Default sorting
-        query = query.order('created_at', { ascending: false });
+        const from = page * limit;
+        const to = from + limit - 1;
 
-        const { data, error, count } = await query;
+        const { data, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
 
         return {
-            data: data.map((p: any) => ({
+            data: (data || []).map((p: any) => ({
                 id: p.id,
                 userId: p.user_id,
                 userName: p.profile?.student_name || '—',
@@ -56,7 +56,9 @@ export const paymentsService = {
                 updatedAt: new Date(p.updated_at || p.created_at),
                 userSnapshot: p.user_snapshot,
             })) as Payment[],
-            count
+            total: count || 0,
+            page,
+            limit
         };
     },
 
@@ -90,6 +92,19 @@ export const paymentsService = {
             pendingCount: pendingCount || 0,
             failedCount: failedCount || 0
         };
+    },
+
+    update: async (id: string, data: Partial<Payment>) => {
+        // Map types back to DB fields if necessary
+        const dbData: any = {};
+        if (data.status) dbData.status = data.status;
+
+        const { error } = await supabase
+            .from('payments')
+            .update(dbData)
+            .eq('id', id);
+
+        if (error) throw error;
     },
 
     retryPayment: async (id: string) => {

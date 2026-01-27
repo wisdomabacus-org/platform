@@ -2,13 +2,12 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { MoreHorizontal, Medal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import type { Submission } from '../../types/results.types';

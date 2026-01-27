@@ -1,28 +1,54 @@
 
 import { supabase } from '@/lib/supabase';
-import { QuestionBank, Question } from '../types/question-bank.types';
+import { QuestionBank, QuestionBankFilters } from '../types/question-bank.types';
 
 export const questionBanksService = {
-    getAll: async () => {
-        const { data, error } = await supabase
+    getAll: async (filters: QuestionBankFilters = {}) => {
+        const { search, minGrade, maxGrade, isActive, page = 0, limit = 10 } = filters;
+
+        let query = supabase
             .from('question_banks')
-            .select('*, questions:questions(count)')
-            .order('created_at', { ascending: false });
+            .select('*, questions:questions(count)', { count: 'exact' });
+
+        if (search) {
+            query = query.ilike('title', `%${search}%`);
+        }
+        if (minGrade !== undefined) {
+            query = query.gte('min_grade', minGrade);
+        }
+        if (maxGrade !== undefined) {
+            query = query.lte('max_grade', maxGrade);
+        }
+        if (isActive !== undefined) {
+            query = query.eq('is_active', isActive);
+        }
+
+        const from = page * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
 
-        return data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            minGrade: item.min_grade,
-            maxGrade: item.max_grade,
-            tags: item.tags || [],
-            isActive: item.is_active,
-            questionsCount: item.questions ? item.questions[0]?.count : 0,
-            usageCount: item.usage_count || 0,
-            createdAt: new Date(item.created_at || new Date().toISOString()),
-        })) as QuestionBank[];
+        return {
+            data: data.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                minGrade: item.min_grade,
+                maxGrade: item.max_grade,
+                tags: item.tags || [],
+                isActive: item.is_active,
+                questionsCount: item.questions ? item.questions[0]?.count : 0,
+                usageCount: item.usage_count || 0,
+                createdAt: new Date(item.created_at || new Date().toISOString()),
+            })) as QuestionBank[],
+            total: count || 0,
+            page,
+            limit
+        };
     },
 
     getById: async (id: string) => {

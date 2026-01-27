@@ -20,7 +20,6 @@ export function useRevenueStats() {
 }
 
 export function useRetryPayment() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: paymentsService.retryPayment,
         onSuccess: () => {
@@ -28,6 +27,20 @@ export function useRetryPayment() {
         },
         onError: (error) => {
             toast.error(`Retry failed: ${error.message}`);
+        }
+    });
+}
+
+export function useUpdatePayment() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => paymentsService.update(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PAYMENTS] });
+            toast.success('Payment updated successfully');
+        },
+        onError: (error: any) => {
+            toast.error(`Update failed: ${error.message}`);
         }
     });
 }

@@ -2,18 +2,22 @@
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { CompetitionForm } from '../components/competition-form';
-import { useCreateCompetition } from '../hooks/use-competitions';
+import { useCreateCompetition, useUpdateCompetitionSyllabus, useUpdateCompetitionPrizes } from '../hooks/use-competitions';
 import { ROUTES } from '@/config/constants';
 import { CompetitionFormValues } from '../types/competition-schema';
 
 export default function CompetitionCreatePage() {
     const navigate = useNavigate();
-    const { mutate: createCompetition, isPending } = useCreateCompetition();
+    const { mutateAsync: createCompetition, isPending } = useCreateCompetition();
+    const { mutateAsync: updateSyllabus } = useUpdateCompetitionSyllabus();
+    const { mutateAsync: updatePrizes } = useUpdateCompetitionPrizes();
 
-    const handleSubmit = (values: CompetitionFormValues) => {
+    const handleSubmit = async (values: CompetitionFormValues) => {
+        const { syllabus, prizes, ...basicInfo } = values;
+
         // Transform dates to ISO strings for DB
         const payload: any = {
-            ...values,
+            ...basicInfo,
             exam_date: values.exam_date.toISOString(),
             registration_start_date: values.registration_start_date.toISOString(),
             registration_end_date: values.registration_end_date.toISOString(),
@@ -26,11 +30,21 @@ export default function CompetitionCreatePage() {
             status: values.status || 'draft',
         };
 
-        createCompetition(payload, {
-            onSuccess: () => {
-                navigate(ROUTES.COMPETITIONS);
+        try {
+            const competition = await createCompetition(payload);
+
+            if (syllabus && syllabus.length > 0) {
+                await updateSyllabus({ id: competition.id, topics: syllabus });
             }
-        });
+
+            if (prizes && prizes.length > 0) {
+                await updatePrizes({ id: competition.id, prizes: prizes });
+            }
+
+            navigate(ROUTES.COMPETITIONS);
+        } catch (error) {
+            console.error('Failed to create competition:', error);
+        }
     };
 
     return (

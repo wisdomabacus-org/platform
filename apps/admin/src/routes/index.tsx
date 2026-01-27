@@ -12,6 +12,7 @@ import CompetitionsPage from '@/features/competitions/pages/competitions-page';
 import CompetitionCreatePage from '@/features/competitions/pages/competition-create-page';
 import CompetitionEditPage from '@/features/competitions/pages/competition-edit-page';
 import CompetitionDetailPage from '@/features/competitions/pages/competition-detail-page';
+import CompetitionQuestionsPage from '@/features/competitions/pages/competition-questions-page';
 
 import EnrollmentsPage from '@/features/enrollments/pages/enrollments-page';
 import PaymentsPage from '@/features/payments/pages/payments-page';
@@ -22,6 +23,7 @@ import SubmissionsPage from '@/features/results/pages/submissions-page';
 import ExamSessionsPage from '@/features/exam-sessions/pages/exam-sessions-page';
 import RequestsPage from '@/features/requests/pages/requests-page';
 import ReferralsPage from '@/features/referrals/pages/referrals-page';
+import SettingsPage from '@/features/settings/pages/settings-page';
 
 import LiveClassesPage from '@/features/live-classes/pages/live-classes-page';
 
@@ -34,17 +36,6 @@ import QuestionBanksPage from '@/features/question-banks/pages/question-banks-pa
 import QuestionBanksQuestionsPage from '@/features/question-banks/pages/question-banks-questions-page';
 
 import DashboardPage from '@/features/dashboard/pages/dashboard-page';
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex min-h-screen flex-1 flex-col items-center justify-center rounded-xl border-2 border-dashed md:min-h-min">
-      <div className="text-center">
-        <h3 className="text-2xl font-bold">{title}</h3>
-        <p className="text-muted-foreground">Coming soon...</p>
-      </div>
-    </div>
-  );
-}
 
 export function AppRoutes() {
   return (
@@ -70,7 +61,7 @@ export function AppRoutes() {
           <Route path={ROUTES.COMPETITIONS_DETAIL} element={<CompetitionDetailPage />} />
           <Route
             path={ROUTES.COMPETITIONS_QUESTIONS}
-            element={<PlaceholderPage title="Competition Questions" />}
+            element={<CompetitionQuestionsPage />}
           />
 
           <Route path={ROUTES.QUESTION_BANKS} element={<QuestionBanksPage />} />
@@ -89,6 +80,7 @@ export function AppRoutes() {
           <Route path={ROUTES.EXAM_SESSIONS} element={<ExamSessionsPage />} />
           <Route path={ROUTES.REQUESTS} element={<RequestsPage />} />
           <Route path={ROUTES.REFERRALS} element={<ReferralsPage />} />
+          <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
           <Route path={ROUTES.LIVE_CLASSES} element={<LiveClassesPage />} />
         </Route>
       </Route>

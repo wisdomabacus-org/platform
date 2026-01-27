@@ -10,25 +10,26 @@ const comps = [
   { id: 'c2', title: 'Abacus Championship North' },
   { id: 'c3', title: 'National Juniors' },
 ];
-const methods: Payment['method'][] = ['razorpay', 'upi', 'card', 'netbanking', 'wallet', 'cash'];
 
 export const mockPayments: Payment[] = Array.from({ length: 80 }).map((_, i) => {
   const n = names[i % names.length];
   const comp = comps[i % comps.length];
-  const status: Payment['status'] =
+  const status: any =
     i % 11 === 0 ? 'refunded' : i % 5 === 0 ? 'failed' : i % 4 === 0 ? 'pending' : 'success';
 
   return {
     id: `${50000 + i}`,
-    orderId: `PAY-${202500 + i}`,
+    userId: `u-${i}`,
     userName: `${n} ${i}`,
     userPhone: `+91-98${(10000000 + i).toString().slice(0, 8)}`,
-    competitionId: comp.id,
-    competitionTitle: comp.title,
     amount: 100 + (i % 5) * 50,
     currency: 'INR',
-    method: methods[i % methods.length],
     status,
+    purpose: 'competition_enrollment',
+    referenceId: comp.id,
+    gateway: 'razorpay',
+    razorpayOrderId: `PAY-${202500 + i}`,
     createdAt: dateMinus(i * 3),
+    updatedAt: dateMinus(i * 3),
   };
 });

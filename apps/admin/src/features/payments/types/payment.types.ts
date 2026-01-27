@@ -30,6 +30,8 @@ export interface PaymentFilters {
   status?: string;
   search?: string; // payment ID, order ID, email, name
   dateRange?: { from: Date; to: Date };
+  page?: number;
+  limit?: number;
 }
 
 export interface RevenueStats {

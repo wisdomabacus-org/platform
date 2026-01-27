@@ -17,6 +17,22 @@ export const competitionSchema = z.object({
     duration: z.number().min(1, { message: 'Duration is required' }).default(60),
     total_marks: z.number().min(1, 'Total marks is required').default(100),
     total_questions: z.number().min(1, { message: 'Total questions is required' }).default(50),
+
+    // Syllabus
+    syllabus: z.array(z.object({
+        topic: z.string().min(1, 'Topic is required'),
+        description: z.string().optional(),
+    })).optional(),
+
+    // Prizes
+    prizes: z.array(z.object({
+        rank: z.number().min(1),
+        title: z.string().min(1, 'Prize title is required'),
+        description: z.string().optional(),
+        cash_prize: z.number().min(0).optional(),
+        worth: z.number().min(0).optional(),
+        prize_type: z.enum(['trophy', 'medal', 'certificate', 'cash']).default('medal'),
+    })).optional(),
 });
 
 export type CompetitionFormValues = z.infer<typeof competitionSchema>;

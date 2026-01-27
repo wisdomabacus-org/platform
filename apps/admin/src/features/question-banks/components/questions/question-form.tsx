@@ -9,6 +9,7 @@ import { questionSchema, QuestionFormValues } from '../../types/question-schema'
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { DialogFooter } from '@/shared/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
+import { ImageUpload } from '@/shared/components/image-upload';
 
 interface Props {
     initial?: Partial<QuestionFormValues>;
@@ -61,9 +62,13 @@ export function QuestionForm({ initial, onCancel, onSave, isLoading }: Props) {
                     name="imageUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Image URL (Optional)</FormLabel>
+                            <FormLabel>Question Image (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="https://..." {...field} />
+                                <ImageUpload
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    folder={`banks/${form.getValues('text').substring(0, 10) || 'unknown'}`}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

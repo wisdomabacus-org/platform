@@ -11,7 +11,7 @@ export default function ResultsPage() {
 
   const data: CompetitionResultsRow[] = useMemo(() => {
     if (!competitions) return [];
-    return competitions.map(c => ({
+    return (competitions || []).map((c: any) => ({
       id: c.id,
       competitionId: c.id,
       competitionTitle: c.title,

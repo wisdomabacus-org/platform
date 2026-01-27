@@ -2,7 +2,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { MoreHorizontal, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import type { Referrer } from '../types/referrals.types';
 import { toast } from 'sonner';
 

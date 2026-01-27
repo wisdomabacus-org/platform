@@ -3,44 +3,40 @@ import { supabase } from '@/lib/supabase';
 import { Enrollment, EnrollmentFilters } from '../types/enrollment.types';
 
 export const enrollmentsService = {
-    getAll: async (filters?: EnrollmentFilters) => {
+    getAll: async (filters: EnrollmentFilters = {}) => {
+        const { competitionId, status, isPaymentConfirmed, page = 0, limit = 10 } = filters;
+
         let query = supabase
             .from('enrollments')
             .select(`
-        *,
-        profile:profiles(student_name, phone, uid),
-        competition:competitions(title, season)
-      `, { count: 'exact' });
+                *,
+                profile:profiles(student_name, phone, uid),
+                competition:competitions(title, season)
+            `, { count: 'exact' });
 
-        if (filters?.competitionId) {
-            query = query.eq('competition_id', filters.competitionId);
+        if (competitionId) {
+            query = query.eq('competition_id', competitionId);
         }
 
-        if (filters?.status) {
-            query = query.eq('status', filters.status);
+        if (status) {
+            query = query.eq('status', status);
         }
 
-        if (filters?.isPaymentConfirmed !== undefined) {
-            query = query.eq('is_payment_confirmed', filters.isPaymentConfirmed);
+        if (isPaymentConfirmed !== undefined) {
+            query = query.eq('is_payment_confirmed', isPaymentConfirmed);
         }
 
-        if (filters?.search) {
-            // Filter by joined profile name (requires embedding filtering or separate search ID)
-            // Supabase filtering on joined tables by '!inner' is possible, but let's keep it simple for now and just check IDs 
-            // or handle advanced search if needed. For now, simple text search on top-level or limited.
-            // Actually, let's skip searching on joined tables for MVP unless strictly requested, 
-            // as it requires specific syntax like `profile!inner(student_name.ilike.%...%)`.
-        }
+        const from = page * limit;
+        const to = from + limit - 1;
 
-        // Default sorting
-        query = query.order('created_at', { ascending: false });
-
-        const { data, error, count } = await query;
+        const { data, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
 
         return {
-            data: data.map((e: any) => ({
+            data: (data || []).map((e: any) => ({
                 id: e.id,
                 userId: e.user_id,
                 userName: e.profile?.student_name || '—',
@@ -54,23 +50,42 @@ export const enrollmentsService = {
                 submissionId: e.submission_id,
                 registeredAt: new Date(e.created_at),
             })) as Enrollment[],
-            count
+            total: count || 0,
+            page,
+            limit
         };
     },
 
     create: async (payload: { userId: string; competitionId: string; paymentId?: string }) => {
-        // Manual enrollment often means bypassing payment or recording an external one.
-        // We'll set payment_id to 'MANUAL-{Date}' if not provided.
-        const paymentId = payload.paymentId || `MANUAL-${Date.now()}`;
+        let finalPaymentId = payload.paymentId;
+
+        // If no paymentId, create a manual record in payments table
+        if (!finalPaymentId) {
+            const { data: payData, error: payError } = await supabase
+                .from('payments')
+                .insert({
+                    user_id: payload.userId,
+                    amount: 0,
+                    status: 'SUCCESS',
+                    purpose: 'COMPETITION_ENROLLMENT',
+                    reference_id: payload.competitionId,
+                    gateway: 'OFFLINE'
+                })
+                .select()
+                .single();
+
+            if (payError) throw payError;
+            finalPaymentId = payData.id;
+        }
 
         const { data, error } = await supabase
             .from('enrollments')
             .insert({
                 user_id: payload.userId,
                 competition_id: payload.competitionId,
-                payment_id: paymentId,
-                is_payment_confirmed: true, // Manual assumption
-                status: 'enrolled'
+                payment_id: finalPaymentId,
+                is_payment_confirmed: true,
+                status: 'confirmed'
             })
             .select()
             .single();

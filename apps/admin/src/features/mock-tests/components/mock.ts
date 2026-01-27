@@ -5,16 +5,23 @@ function dateMinus(days: number) {
 }
 
 export const mockMockTests: MockTest[] = Array.from({ length: 48 }).map((_, i) => {
-  const free = i % 5 === 0;
   const published = i % 3 !== 0;
   return {
     id: `${8000 + i}`,
     title: `Mock Test ${i + 1}`,
-    gradeLevel: ((i % 12) + 1),
-    isFree: free,
-    durationMinutes: 30 + (i % 4) * 15,
-    isPublished: published,
-    questionsCount: 20 + (i % 3) * 10,
-    createdAt: dateMinus(i),
+    description: 'Practice test for mental math.',
+    difficulty: (['Beginner', 'Intermediate', 'Advanced', 'Expert'][i % 4] as any),
+    duration: 30 + (i % 4) * 15,
+    total_questions: 20 + (i % 3) * 10,
+    min_grade: (i % 12) + 1,
+    max_grade: (i % 12) + 1,
+    is_active: true,
+    is_published: published,
+    is_locked: false,
+    attempt_count: 0,
+    tags: ['math', 'abacus'],
+    sort_order: i,
+    created_at: dateMinus(i).toISOString(),
+    updated_at: dateMinus(i).toISOString(),
   };
 });

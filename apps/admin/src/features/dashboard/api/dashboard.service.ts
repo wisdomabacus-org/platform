@@ -23,7 +23,7 @@ export const dashboardService = {
         const { data: payments } = await supabase
             .from('payments')
             .select('amount')
-            .eq('status', 'success')
+            .eq('status', 'SUCCESS')
             .gte('created_at', firstDayOfMonth);
 
         const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;

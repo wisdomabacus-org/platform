@@ -32,9 +32,9 @@ export function CompetitionsTableToolbar({ table }: ToolbarProps) {
   const setGlobalFilter = table.setGlobalFilter;
 
   // Columns (ids must match definitions)
-  const publishedCol = table.getColumn('isPublished');
-  const gradeCol = table.getColumn('applicableGrades');
-  const resultsCol = table.getColumn('isResultsPublished');
+  const publishedCol = table.getColumn('is_published');
+  const gradeCol = table.getColumn('min_grade');
+  const resultsCol = table.getColumn('is_results_published');
   const registrationCol = table.getColumn('registration'); // filterFn: withinRegistration
 
   // Distinct grades for mock
@@ -43,9 +43,11 @@ export function CompetitionsTableToolbar({ table }: ToolbarProps) {
     () =>
       Array.from(
         new Set(
-          rows.flatMap((r) =>
-            Array.isArray(r.original.applicableGrades) ? r.original.applicableGrades : []
-          )
+          rows.flatMap((r) => {
+            const grades = [];
+            for (let i = r.original.min_grade; i <= r.original.max_grade; i++) grades.push(i);
+            return grades;
+          })
         )
       )
         .filter((x): x is number => typeof x === 'number')

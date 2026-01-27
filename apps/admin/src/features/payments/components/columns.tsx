@@ -19,10 +19,62 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/shared/components/ui/tooltip';
+import { useUpdatePayment } from '../hooks/use-payments';
 
 function currencyINR(n: number) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
+
+const PaymentRowActions = ({ payment }: { payment: Payment }) => {
+  const { mutate: updatePayment } = useUpdatePayment();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>ID: {payment.id.substring(0, 8)}...</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(JSON.stringify(payment, null, 2))}>
+          Copy JSON
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
+        {payment.status !== 'success' && (
+          <DropdownMenuItem
+            onClick={() => {
+              if (confirm('Mark this payment as SUCCESS? This should only be done if you have verified the payment manually.')) {
+                updatePayment({ id: payment.id, data: { status: 'success' } });
+              }
+            }}
+          >
+            Mark as Success
+          </DropdownMenuItem>
+        )}
+
+        {payment.status === 'pending' && (
+          <DropdownMenuItem
+            onClick={() => {
+              if (confirm('Mark this payment as FAILED?')) {
+                updatePayment({ id: payment.id, data: { status: 'failed' } });
+              }
+            }}
+          >
+            Mark as Failed
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive">
+          Initiate Refund (Stub)
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export const paymentColumns: ColumnDef<Payment>[] = [
   {
@@ -111,33 +163,6 @@ export const paymentColumns: ColumnDef<Payment>[] = [
     enableSorting: false,
     enableHiding: false,
     size: 48,
-    cell: ({ row }) => {
-      const p = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>ID: {p.id.substring(0, 8)}...</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(JSON.stringify(p, null, 2))}>
-              Copy JSON
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {p.status === 'failed' && (
-              <DropdownMenuItem onClick={() => console.log('Retry logic')}>
-                Retry Payment (Mock)
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem className="text-destructive">
-              Initiate Refund (Stub)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
+    cell: ({ row }) => <PaymentRowActions payment={row.original} />,
   },
 ];

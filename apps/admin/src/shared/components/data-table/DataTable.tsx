@@ -29,11 +29,22 @@ import { DataTablePagination } from "./data-table-pagination"
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
+    rowCount?: number
+    pageCount?: number
+    pagination?: {
+        pageIndex: number
+        pageSize: number
+    }
+    onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
+    rowCount,
+    pageCount,
+    pagination,
+    onPaginationChange,
 }: DataTableProps<TData, TValue>) {
     const [rowSelection, setRowSelection] = React.useState({})
     const [columnVisibility, setColumnVisibility] =
@@ -51,18 +62,28 @@ export function DataTable<TData, TValue>({
             columnVisibility,
             rowSelection,
             columnFilters,
+            ...(pagination && { pagination }),
         },
         enableRowSelection: true,
         onRowSelectionChange: setRowSelection,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
+        onPaginationChange: (updater) => {
+            if (onPaginationChange && pagination) {
+                const nextPagination = typeof updater === 'function' ? updater(pagination) : updater;
+                onPaginationChange(nextPagination);
+            }
+        },
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFacetedRowModel: getFacetedRowModel(),
         getFacetedUniqueValues: getFacetedUniqueValues(),
+        manualPagination: !!onPaginationChange,
+        rowCount,
+        pageCount,
     })
 
     return (

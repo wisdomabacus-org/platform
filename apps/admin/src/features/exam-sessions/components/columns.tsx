@@ -49,7 +49,7 @@ export const examSessionColumns: (onForceStop: (id: string) => void) => ColumnDe
         {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => <Badge variant="secondary" className="animate-pulse">Active</Badge>,
+            cell: () => <Badge variant="secondary" className="animate-pulse">Active</Badge>,
         },
         {
             id: 'actions',

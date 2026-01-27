@@ -25,12 +25,16 @@ export default function CompetitionsPage() {
     search: '',
     status: undefined,
   });
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  const { data: competitions, isLoading } = useCompetitions(filters);
-
-  // Debounce search could be added here, but for now direct state is fine for small lists
-  // or we can use generic filtering inside DataTable if client-side filtering is enough.
-  // We implemented server-side filtering support in service, let's use it lightly.
+  const { data: competitionsData, isLoading } = useCompetitions({
+    ...filters,
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+  });
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -50,15 +54,21 @@ export default function CompetitionsPage() {
             <Input
               placeholder="Search competitions..."
               value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              onChange={(e) => {
+                setFilters(prev => ({ ...prev, search: e.target.value }));
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
               className="max-w-sm"
             />
             <Select
               value={filters.status?.[0] || 'all'}
-              onValueChange={(val) => setFilters(prev => ({
-                ...prev,
-                status: val === 'all' ? undefined : [val]
-              }))}
+              onValueChange={(val) => {
+                setFilters(prev => ({
+                  ...prev,
+                  status: val === 'all' ? undefined : [val]
+                }));
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Status" />
@@ -80,7 +90,13 @@ export default function CompetitionsPage() {
               Loading competitions...
             </div>
           ) : (
-            <DataTable columns={columns} data={competitions || []} />
+            <DataTable
+              columns={columns}
+              data={competitionsData?.data || []}
+              rowCount={competitionsData?.count || 0}
+              pagination={pagination}
+              onPaginationChange={setPagination}
+            />
           )}
         </CardContent>
       </Card>

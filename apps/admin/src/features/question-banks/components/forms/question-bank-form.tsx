@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props) {
-    const form = useForm<QuestionBankFormValues>({
+    const form = useForm<any>({
         resolver: zodResolver(questionBankSchema),
         defaultValues: {
             title: initial?.title || '',
@@ -34,7 +34,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
                 <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="title"
                     render={({ field }) => (
                         <FormItem>
@@ -48,7 +48,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
                 />
 
                 <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="description"
                     render={({ field }) => (
                         <FormItem>
