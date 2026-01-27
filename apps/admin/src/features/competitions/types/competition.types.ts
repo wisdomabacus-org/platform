@@ -1,37 +1,14 @@
-export interface QuestionOption {
-  _id: string;
-  text: string;
-}
 
-export interface Question {
-  _id: string;
-  questionText: string;
-  imageUrl?: string;
-  options: QuestionOption[];
-  correctOptionId: string;
-}
+import { Database } from '@platform/database';
 
-export type CompetitionType = 'ACTUAL' | 'MOCK';
+export type CompetitionStatus = 'draft' | 'published' | 'upcoming' | 'ongoing' | 'completed' | 'archived';
 
-export interface Competition {
-  id: string;
-  title: string;
-  applicableGrades: number[];
-  description: string;
-  prizeDetails?: string;
-  enrollmentFee: number;
-  type: CompetitionType;
-  isPublished: boolean;
-  isResultsPublished: boolean;
-  registrationStartDate: Date;
-  registrationEndDate: Date;
-  competitionDate: Date;
-  examStartTime: string; // "HH:MM"
-  examEndTime: string; // "HH:MM"
-  resultsAnnouncementDate: Date;
-  durationMinutes: number;
-  questions: Question[];
-  createdBy: string; // Admin ID
-  createdAt: Date;
-  updatedAt: Date;
+export type Competition = Database['public']['Tables']['competitions']['Row'];
+export type CompetitionInsert = Database['public']['Tables']['competitions']['Insert'];
+export type CompetitionUpdate = Database['public']['Tables']['competitions']['Update'];
+
+export interface CompetitionFilters {
+  status?: string[];
+  search?: string;
+  season?: string;
 }

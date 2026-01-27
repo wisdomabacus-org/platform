@@ -39,7 +39,7 @@ export function LoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isPending}

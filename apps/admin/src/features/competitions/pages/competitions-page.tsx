@@ -1,16 +1,89 @@
-import { useMemo } from 'react';
-import { CompetitionsHeader } from '../components/header';
-import { mockCompetitions } from '../components/mock';
-import { CompetitionsDataTable } from '../components/data-table';
-import { competitionColumns } from '../components/columns';
+
+import { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { DataTable } from '@/shared/components/data-table/DataTable';
+import { columns } from '../components/competitions-columns';
+import { useCompetitions } from '../hooks/use-competitions';
+import { Button } from '@/shared/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/config/constants';
+import { Input } from '@/shared/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
+import { CompetitionFilters } from '../types/competition.types';
+import { Card, CardContent } from '@/shared/components/ui/card';
 
 export default function CompetitionsPage() {
-  const data = useMemo(() => mockCompetitions, []);
+  const navigate = useNavigate();
+  const [filters, setFilters] = useState<CompetitionFilters>({
+    search: '',
+    status: undefined,
+  });
+
+  const { data: competitions, isLoading } = useCompetitions(filters);
+
+  // Debounce search could be added here, but for now direct state is fine for small lists
+  // or we can use generic filtering inside DataTable if client-side filtering is enough.
+  // We implemented server-side filtering support in service, let's use it lightly.
 
   return (
-    <div className="w-full flex flex-col h-screen max-h-screen overflow-y-scroll scrollbar-hide gap-y-4 px-8 py-4">
-      <CompetitionsHeader />
-      <CompetitionsDataTable columns={competitionColumns} data={data} pageSize={10} />
+    <div className="flex flex-col gap-6 p-6">
+      <PageHeader
+        title="Competitions"
+        description="Manage your math olympiads and competitions."
+      >
+        <Button onClick={() => navigate(ROUTES.COMPETITIONS_CREATE)}>
+          <Plus className="mr-2 h-4 w-4" /> Create Competition
+        </Button>
+      </PageHeader>
+
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          {/* Filters Toolbar */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center py-4">
+            <Input
+              placeholder="Search competitions..."
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              className="max-w-sm"
+            />
+            <Select
+              value={filters.status?.[0] || 'all'}
+              onValueChange={(val) => setFilters(prev => ({
+                ...prev,
+                status: val === 'all' ? undefined : [val]
+              }))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Table */}
+          {isLoading ? (
+            <div className="h-48 flex items-center justify-center text-muted-foreground">
+              Loading competitions...
+            </div>
+          ) : (
+            <DataTable columns={columns} data={competitions || []} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

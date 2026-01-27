@@ -24,7 +24,7 @@ export const resultsColumns: ColumnDef<CompetitionResultsRow>[] = [
     accessorKey: 'competitionTitle',
     header: 'Competition',
     cell: ({ row }) => (
-      <Link to={`/results/:id`} className="font-medium hover:underline">
+      <Link to={`/results/${row.original.competitionId}`} className="font-medium hover:underline">
         {row.original.competitionTitle}
       </Link>
     ),
@@ -76,7 +76,7 @@ export const resultsColumns: ColumnDef<CompetitionResultsRow>[] = [
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link to={`/competitions/${r.competitionId}/results`}>Open results</Link>
+              <Link to={`/results/${r.competitionId}`}>Open results</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {r.status === 'pending' ? (

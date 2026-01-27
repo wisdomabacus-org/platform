@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table';
-import { LeaderboardRow } from './mock-detail';
+import { LeaderboardRow } from '../types/results.types';
 
 interface Props {
   rows: LeaderboardRow[];

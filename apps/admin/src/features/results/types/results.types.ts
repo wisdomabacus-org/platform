@@ -9,3 +9,11 @@ export interface CompetitionResultsRow {
   publishedAt?: Date;         // exists if published
   totalParticipants: number;  // count for context
 }
+
+export interface LeaderboardRow {
+  id?: string;
+  rank: number;
+  studentName: string;
+  grade: number;
+  score: number;
+}

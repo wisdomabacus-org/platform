@@ -1,39 +1,45 @@
-import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
 import { MockTestForm } from '../components/forms/mock-test-form';
-
-// For now, mock load
-const mockLoad = (id: string) => ({
-  title: `Mock Test ${id}`,
-  description: 'Practice set for Grade 3.',
-  gradeLevel: 3,
-  isFree: false,
-  durationMinutes: 45,
-  isPublished: false,
-});
+import { useMockTest, useUpdateMockTest } from '../hooks/use-mock-tests';
+import { MockTestFormValues } from '../types/mock-test-schema';
+import { Loader2 } from 'lucide-react';
 
 export default function MockTestEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [initial, setInitial] = useState<any>(null);
+  const { data: mockTest, isLoading: isLoadingTest } = useMockTest(id!);
+  const { mutate: updateMockTest, isPending: isUpdating } = useUpdateMockTest();
 
-  useEffect(() => {
-    if (id) setInitial(mockLoad(id));
-  }, [id]);
+  if (isLoadingTest) {
+    return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  }
 
-  if (!initial) return null;
+  if (!mockTest) {
+    return <div>Mock Test not found</div>;
+  }
+
+  const handleSave = (values: MockTestFormValues) => {
+    updateMockTest({ id: id!, data: values });
+  };
+
+  const initialValues: Partial<MockTestFormValues> = {
+    title: mockTest.title,
+    description: mockTest.description,
+    gradeLevel: mockTest.gradeLevel,
+    durationMinutes: mockTest.durationMinutes,
+    isFree: mockTest.isFree,
+    isPublished: mockTest.isPublished
+  };
 
   return (
-    <MockTestForm
-      initial={initial}
-      onCancel={() => navigate(ROUTES.MOCK_TESTS)}
-      onSave={(values) => {
-        // Later: PATCH /admin/mock-tests/:id
-        console.log(values);
-        // Optionally navigate to question bank: `/mock-tests/${id}/questions`
-        navigate(ROUTES.MOCK_TESTS);
-      }}
-    />
+    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+      <MockTestForm
+        initial={initialValues}
+        onCancel={() => navigate(ROUTES.MOCK_TESTS)}
+        onSave={handleSave}
+        isLoading={isUpdating}
+      />
+    </div>
   );
 }

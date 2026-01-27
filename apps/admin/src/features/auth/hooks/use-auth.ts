@@ -23,7 +23,8 @@ export function useLogin() {
       }
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.error?.message || 'Login failed';
+      // Check if error comes from our service wrapper (ApiResponse.error.message) or generic error
+      const message = error?.message || 'Login failed';
       toast.error(message);
     },
   });
@@ -46,7 +47,7 @@ export function useLogout() {
       navigate(ROUTES.LOGIN);
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.error?.message || 'Logout failed';
+      const message = error?.message || 'Logout failed';
       toast.error(message);
     },
   });
@@ -68,7 +69,10 @@ export function useAdminProfile() {
     retry: false,
     enabled: false,
     throwOnError: (error: any) => {
-      if (error?.response?.status === 401) {
+      // Supabase auth errors usually don't have status 401 in the same way axios does, 
+      // but if we fail to get session, clearAuth is good.
+      // However, we can just let it fail and handle in UI or useEffect.
+      if (error?.message?.includes('No session') || error?.code === '401') {
         clearAuth();
       }
       return false;

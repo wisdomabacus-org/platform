@@ -1,3 +1,4 @@
+
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1',
   TIMEOUT: 30000,
@@ -17,6 +18,7 @@ export const QUERY_KEYS = {
   PAYMENTS: 'payments',
   RESULTS: 'results',
   MOCK_TESTS: 'mock-tests',
+  QUESTION_BANKS: 'question-banks',
   LIVE_CLASSES: 'live-classes',
 } as const;
 
@@ -28,8 +30,11 @@ export const ROUTES = {
   USERS_DETAIL: '/users/:id',
   COMPETITIONS: '/competitions',
   COMPETITIONS_CREATE: '/competitions/create',
+  COMPETITIONS_DETAIL: '/competitions/:id',
   COMPETITIONS_EDIT: '/competitions/:id/edit',
   COMPETITIONS_QUESTIONS: '/competitions/:id/questions',
+  QUESTION_BANKS: '/question-banks',
+  QUESTION_BANKS_QUESTIONS: '/question-banks/:id/questions',
   ENROLLMENTS: '/enrollments',
   PAYMENTS: '/payments',
   RESULTS: '/results',
@@ -39,4 +44,8 @@ export const ROUTES = {
   MOCK_TESTS_EDIT: '/mock-tests/:id/edit',
   MOCK_TESTS_QUESTIONS: '/mock-tests/:id/questions',
   LIVE_CLASSES: '/live-classes',
+  REFERRALS: '/referrals',
+  EXAM_SESSIONS: '/exam-sessions',
+  REQUESTS: '/requests',
+  SETTINGS: '/settings',
 } as const;
