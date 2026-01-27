@@ -39,6 +39,7 @@ export const ROUTES = {
   PAYMENTS: '/payments',
   RESULTS: '/results',
   RESULTS_DETAIL: '/results/:id',
+  SUBMISSIONS: '/submissions',
   MOCK_TESTS: '/mock-tests',
   MOCK_TESTS_CREATE: '/mock-tests/create',
   MOCK_TESTS_EDIT: '/mock-tests/:id/edit',

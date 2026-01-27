@@ -1,7 +1,8 @@
+
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, AlertCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,22 +12,28 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import type { Payment } from '../types/payment.types';
+import { format } from 'date-fns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/shared/components/ui/tooltip';
 
 function currencyINR(n: number) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
-function fmtDateTime(d: Date | string) {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  const dd = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  const tt = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  return `${dd} ${tt}`;
-}
 
 export const paymentColumns: ColumnDef<Payment>[] = [
   {
-    accessorKey: 'orderId',
-    header: 'Order ID',
-    cell: ({ row }) => row.original.orderId,
+    accessorKey: 'id',
+    header: 'Payment ID',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.id.substring(0, 18)}...</span>,
+  },
+  {
+    accessorKey: 'razorpayOrderId',
+    header: 'Gateway Order',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.razorpayOrderId || '—'}</span>,
   },
   {
     accessorKey: 'userName',
@@ -39,46 +46,63 @@ export const paymentColumns: ColumnDef<Payment>[] = [
     ),
   },
   {
-    accessorKey: 'competitionTitle',
-    header: 'Competition',
-    cell: ({ row }) => row.original.competitionTitle,
-  },
-  {
     accessorKey: 'amount',
     header: 'Amount',
-    cell: ({ row }) => currencyINR(row.original.amount),
+    cell: ({ row }) => (
+      <span className="font-medium">
+        {currencyINR(row.original.amount)}
+      </span>
+    ),
     size: 100,
-  },
-  {
-    accessorKey: 'method',
-    header: 'Method',
-    cell: ({ row }) => {
-      const m = row.original.method;
-      return <Badge variant="secondary">{m.charAt(0).toUpperCase() + m.slice(1)}</Badge>;
-    },
-    size: 110,
   },
   {
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
       const s = row.original.status;
+      const failReason = row.original.failureReason;
       const v =
         s === 'success'
           ? 'default'
           : s === 'pending'
-          ? 'secondary'
-          : s === 'failed'
-          ? 'destructive'
-          : 'outline';
-      return <Badge variant={v as any}>{s.charAt(0).toUpperCase() + s.slice(1)}</Badge>;
+            ? 'secondary'
+            : s === 'failed'
+              ? 'destructive'
+              : 'outline';
+
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant={v as any} className="uppercase">{s}</Badge>
+          {s === 'failed' && failReason && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{failReason}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
     },
     size: 110,
   },
   {
+    accessorKey: 'purpose',
+    header: 'Purpose',
+    cell: ({ row }) => <span className="capitalize text-muted-foreground">{row.original.purpose.replace('_', ' ')}</span>
+  },
+  {
     accessorKey: 'createdAt',
-    header: 'Created',
-    cell: ({ row }) => fmtDateTime(row.original.createdAt),
+    header: 'Date',
+    cell: ({ row }) => (
+      <span className="text-xs whitespace-nowrap">
+        {format(row.original.createdAt, 'MMM d, yyyy HH:mm')}
+      </span>
+    ),
     size: 170,
   },
   {
@@ -97,14 +121,19 @@ export const paymentColumns: ColumnDef<Payment>[] = [
               <span className="sr-only">Open menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => console.log('View transaction', p.id)}>
-              View transaction
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>ID: {p.id.substring(0, 8)}...</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(JSON.stringify(p, null, 2))}>
+              Copy JSON
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => console.log('Mark refunded', p.id)}>
-              Mark refunded
+            {p.status === 'failed' && (
+              <DropdownMenuItem onClick={() => console.log('Retry logic')}>
+                Retry Payment (Mock)
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive">
+              Initiate Refund (Stub)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

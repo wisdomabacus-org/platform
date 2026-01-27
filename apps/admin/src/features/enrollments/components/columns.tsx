@@ -1,3 +1,4 @@
+
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Badge } from '@/shared/components/ui/badge';
@@ -12,15 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import type { Enrollment } from '../types/enrollment.types';
-
-function fmtDate(d: Date | string) {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+import { format } from 'date-fns';
 
 export const enrollmentColumns: ColumnDef<Enrollment>[] = [
   {
@@ -56,51 +49,48 @@ export const enrollmentColumns: ColumnDef<Enrollment>[] = [
   {
     accessorKey: 'competitionTitle',
     header: 'Competition',
-    cell: ({ row }) => row.original.competitionTitle,
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <span>{row.original.competitionTitle}</span>
+        <span className="text-xs text-muted-foreground">{row.original.competitionSeason}</span>
+      </div>
+    ),
   },
   {
-    accessorKey: 'grade',
-    header: 'Grade',
-    cell: ({ row }) => row.original.grade,
-    size: 60,
+    accessorKey: 'paymentId',
+    header: 'Payment ID',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.paymentId}</span>,
+  },
+  {
+    accessorKey: 'isPaymentConfirmed',
+    header: 'Payment',
+    cell: ({ row }) => (
+      <Badge variant={row.original.isPaymentConfirmed ? 'default' : 'secondary'}>
+        {row.original.isPaymentConfirmed ? 'Paid' : 'Unpaid'}
+      </Badge>
+    ),
+    size: 110,
   },
   {
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
       const s = row.original.status;
-      const v =
-        s === 'confirmed' ? 'default' : s === 'pending' ? 'secondary' : 'destructive';
-      return <Badge variant={v as any}>{s.charAt(0).toUpperCase() + s.slice(1)}</Badge>;
+      return <Badge variant="outline" className="uppercase">{s}</Badge>;
     },
     size: 110,
   },
   {
-    accessorKey: 'paymentStatus',
-    header: 'Payment',
-    cell: ({ row }) => {
-      const p = row.original.paymentStatus;
-      const v =
-        p === 'success'
-          ? 'default'
-          : p === 'pending'
-            ? 'secondary'
-            : p === 'failed'
-              ? 'destructive'
-              : 'outline';
-      return <Badge variant={v as any}>{p.charAt(0).toUpperCase() + p.slice(1)}</Badge>;
-    },
-    size: 110,
-  },
-  {
-    accessorKey: 'orderId',
-    header: 'Order ID',
-    cell: ({ row }) => row.original.orderId,
+    accessorKey: 'submissionId',
+    header: 'Exam',
+    cell: ({ row }) => (
+      row.original.submissionId ? <Badge variant="secondary">Submitted</Badge> : <span className="text-muted-foreground">Pending</span>
+    ),
   },
   {
     accessorKey: 'registeredAt',
     header: 'Registered On',
-    cell: ({ row }) => fmtDate(row.original.registeredAt),
+    cell: ({ row }) => <span className="text-xs">{format(row.original.registeredAt, 'PP')}</span>,
     size: 150,
   },
   {
@@ -121,15 +111,12 @@ export const enrollmentColumns: ColumnDef<Enrollment>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => console.log('View', e.id)}>
-              View details
+            <DropdownMenuItem onClick={() => console.log('View enrollment', e.id)}>
+              View Details
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => console.log('Mark confirmed', e.id)}>
-              Mark confirmed
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log('Mark cancelled', e.id)}>
-              Mark cancelled
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              Cancel Enrollment
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

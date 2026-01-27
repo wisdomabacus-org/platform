@@ -1,8 +1,10 @@
+
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,20 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import { User, UserStatus, AuthProvider } from '../types/user.types';
-
-function StatusBadge({ status }: { status: UserStatus }) {
-  if (status === UserStatus.BANNED) {
-    return <Badge variant="destructive">Banned</Badge>;
-  }
-  return <Badge variant="secondary">Active</Badge>;
-}
-
-function ProviderBadge({ provider }: { provider: AuthProvider }) {
-  return (
-    <Badge variant="outline">{provider === AuthProvider.GOOGLE ? 'Google' : 'Phone'}</Badge>
-  );
-}
+import { User } from '../types/user.types';
+import { ROUTES } from '@/config/constants';
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -48,10 +38,19 @@ export const userColumns: ColumnDef<User>[] = [
     size: 24,
   },
   {
+    accessorKey: 'uid',
+    header: 'UID',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.uid.substring(0, 8)}...</span>,
+    size: 80,
+  },
+  {
     accessorKey: 'studentName',
     header: 'Student',
     cell: ({ row }) => (
-      <div className="font-medium">{row.original.studentName ?? '—'}</div>
+      <div className="flex flex-col">
+        <span className="font-medium">{row.original.studentName ?? '—'}</span>
+        <span className="text-xs text-muted-foreground">{row.original.email}</span>
+      </div>
     ),
     enableHiding: false,
   },
@@ -69,7 +68,7 @@ export const userColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'authProvider',
     header: 'Provider',
-    cell: ({ row }) => <ProviderBadge provider={row.original.authProvider} />,
+    cell: ({ row }) => <Badge variant="outline" className="capitalize">{row.original.authProvider}</Badge>,
     size: 100,
   },
   {
@@ -78,21 +77,19 @@ export const userColumns: ColumnDef<User>[] = [
     cell: ({ row }) => row.original.phone ?? '—',
   },
   {
-    accessorKey: 'email',
-    header: 'Email',
-    cell: ({ row }) => row.original.email ?? '—',
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    size: 100,
-  },
-  {
     accessorKey: 'isProfileComplete',
     header: 'Profile',
-    cell: ({ row }) => (row.original.isProfileComplete ? 'Complete' : 'Incomplete'),
+    cell: ({ row }) => (
+      <Badge variant={row.original.isProfileComplete ? 'default' : 'secondary'}>
+        {row.original.isProfileComplete ? 'Complete' : 'Incomplete'}
+      </Badge>
+    ),
     size: 110,
+  },
+  {
+    accessorKey: 'lastLogin',
+    header: 'Last Login',
+    cell: ({ row }) => row.original.lastLogin ? new Date(row.original.lastLogin).toLocaleDateString() : '—',
   },
   {
     accessorKey: 'createdAt',
@@ -117,15 +114,13 @@ export const userColumns: ColumnDef<User>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => console.log('View', u.id)}>
-              View details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log('Impersonate', u.id)}>
-              Impersonate
+            <DropdownMenuItem asChild>
+              <Link to={ROUTES.USERS_DETAIL.replace(':id', u.id)}>View Details</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => console.log('Ban/Unban', u.id)}>
-              Toggle status
+            {/* Delete or Ban placeholder */}
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              Delete User
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

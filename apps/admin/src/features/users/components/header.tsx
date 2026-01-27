@@ -12,7 +12,9 @@ export function UsersHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Additional actions can be placed here later */}
+        <Button variant="outline" onClick={useUsersUiStore.getState().openImport}>
+          Import CSV
+        </Button>
         <Button onClick={openRegister}>Register user</Button>
       </div>
     </div>

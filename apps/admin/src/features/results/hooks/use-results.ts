@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { resultsService } from '../api/results.service';
 import { competitionsService } from '@/features/competitions/api/competitions.service';
 import { QUERY_KEYS } from '@/config/constants';
+import { SubmissionFilters } from '../types/results.types';
 
 // Fetch competitions that are relevant for results (ongoing, completed)
 export function useResultCompetitions() {
@@ -10,9 +11,7 @@ export function useResultCompetitions() {
         queryKey: [QUERY_KEYS.COMPETITIONS, 'results-list'],
         queryFn: async () => {
             const all = await competitionsService.getAll();
-            // Filter for relevant statuses
             return all.filter(c => ['upcoming', 'ongoing', 'completed', 'published'].includes(c.status));
-            // Or maybe just return all and let UI filter
         }
     });
 }
@@ -33,5 +32,12 @@ export function usePublishResults() {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS] });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.RESULTS, competitionId] });
         }
+    });
+}
+
+export function useSubmissions(filters?: SubmissionFilters) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.RESULTS, 'submissions', filters],
+        queryFn: () => resultsService.getAllSubmissions(filters),
     });
 }

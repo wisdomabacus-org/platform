@@ -14,9 +14,9 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import type { User } from '../types/user.types';
-import { AuthProvider, UserStatus } from '../types/user.types';
 
-// Shared helper: coercion to undefined for "any"
+
+// Shared helper
 const toFilterValue = (v: string) => (v === 'any' ? undefined : v);
 
 interface ToolbarProps {
@@ -28,7 +28,7 @@ export function UsersTableToolbar({ table }: ToolbarProps) {
   const globalFilter = (table.getState() as any).globalFilter ?? '';
   const setGlobalFilter = table.setGlobalFilter;
 
-  const statusCol = table.getColumn('status');
+  // Columns for filtering
   const providerCol = table.getColumn('authProvider');
   const gradeCol = table.getColumn('studentGrade');
   const cityCol = table.getColumn('city');
@@ -38,20 +38,19 @@ export function UsersTableToolbar({ table }: ToolbarProps) {
   const distinct = <K extends keyof any>(arr: any[], key: K) =>
     Array.from(new Set(arr.map((r) => r?.original?.[key]).filter(Boolean))).slice(0, 50);
 
-  const rows = table.getCoreRowModel().rows; // current full data set
+  const rows = table.getCoreRowModel().rows;
   const cities = useMemo(() => distinct(rows, 'city'), [rows]);
   const states = useMemo(() => distinct(rows, 'state'), [rows]);
   const grades = useMemo(
     () =>
       Array.from(
-        new Set(rows.map((r) => r?.original?.studentGrade).filter(Boolean))
-      ).sort((a, b) => a! - b!),
+        new Set(rows.map((r) => r?.original?.studentGrade).filter((g) => g !== null && g !== undefined))
+      ).sort((a: any, b: any) => a - b),
     [rows]
   );
 
   // Current filter states
   const filtersActive = useMemo(() => {
-    const st = !!statusCol?.getFilterValue();
     const pr = !!providerCol?.getFilterValue();
     const gr = !!gradeCol?.getFilterValue();
     const ci = !!cityCol?.getFilterValue();
@@ -59,21 +58,13 @@ export function UsersTableToolbar({ table }: ToolbarProps) {
     const pf = !!profileCol?.getFilterValue();
     const g = !!globalFilter;
 
-    return { st, pr, gr, ci, stt, pf, g };
-  }, [statusCol, providerCol, gradeCol, cityCol, stateCol, profileCol, globalFilter]);
+    return { pr, gr, ci, stt, pf, g };
+  }, [providerCol, gradeCol, cityCol, stateCol, profileCol, globalFilter]);
 
-  const hasAnyFilter =
-    filtersActive.g ||
-    filtersActive.st ||
-    filtersActive.pr ||
-    filtersActive.gr ||
-    filtersActive.ci ||
-    filtersActive.stt ||
-    filtersActive.pf;
+  const hasAnyFilter = Object.values(filtersActive).some(Boolean);
 
   const clearAll = () => {
     setGlobalFilter('');
-    statusCol?.setFilterValue(undefined);
     providerCol?.setFilterValue(undefined);
     gradeCol?.setFilterValue(undefined);
     cityCol?.setFilterValue(undefined);
@@ -86,59 +77,31 @@ export function UsersTableToolbar({ table }: ToolbarProps) {
       {/* Left: Search */}
       <div className="flex flex-1 items-center gap-2">
         <Input
-          placeholder="Search name, parent, email, phone…"
+          placeholder="Search name, phone, email..."
           value={globalFilter ?? ''}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="w-full md:max-w-sm"
         />
-
-        {/* Active filter badges (optional visual feedback) */}
+        {/* Active badges */}
         <div className="hidden flex-wrap items-center gap-1 md:flex">
-          {filtersActive.st && <Badge variant="outline">Status</Badge>}
           {filtersActive.pr && <Badge variant="outline">Provider</Badge>}
           {filtersActive.gr && <Badge variant="outline">Grade</Badge>}
           {filtersActive.ci && <Badge variant="outline">City</Badge>}
-          {filtersActive.stt && <Badge variant="outline">State</Badge>}
           {filtersActive.pf && <Badge variant="outline">Profile</Badge>}
         </div>
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Filters popover (modular) */}
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="gap-2">
               <SlidersHorizontal className="h-4 w-4" />
               Filters
-              {hasAnyFilter ? (
-                <Badge variant="secondary" className="ml-1">
-                  ●
-                </Badge>
-              ) : null}
+              {hasAnyFilter && <Badge variant="secondary" className="ml-1">●</Badge>}
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 space-y-3">
-            {/* Status */}
-            {statusCol && (
-              <div className="space-y-2">
-                <div className="text-muted-foreground text-xs font-medium">Status</div>
-                <Select
-                  value={(statusCol.getFilterValue() as string) ?? 'any'}
-                  onValueChange={(v) => statusCol.setFilterValue(toFilterValue(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
-                    <SelectItem value={UserStatus.BANNED}>Banned</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             {/* Provider */}
             {providerCol && (
               <div className="space-y-2">
@@ -147,13 +110,12 @@ export function UsersTableToolbar({ table }: ToolbarProps) {
                   value={(providerCol.getFilterValue() as string) ?? 'any'}
                   onValueChange={(v) => providerCol.setFilterValue(toFilterValue(v))}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any</SelectItem>
-                    <SelectItem value={AuthProvider.GOOGLE}>Google</SelectItem>
-                    <SelectItem value={AuthProvider.PHONE}>Phone</SelectItem>
+                    <SelectItem value="google">Google</SelectItem>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

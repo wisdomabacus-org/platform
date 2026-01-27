@@ -1,15 +1,29 @@
-export type EnrollmentStatus = 'pending' | 'confirmed' | 'cancelled';
-export type PaymentStatus = 'success' | 'pending' | 'failed' | 'refunded';
+
+export type EnrollmentStatus = 'enrolled' | 'cancelled' | 'pending';
 
 export interface Enrollment {
-  id: string;
+  id: string; // enrollment id
+  userId: string;
   userName: string;
   userPhone: string;
+
   competitionId: string;
   competitionTitle: string;
-  grade: number;
-  status: EnrollmentStatus;
-  paymentStatus: PaymentStatus;
-  orderId: string;
+  competitionSeason: string;
+
+  status: string; // The enrollment table status (e.g. 'enrolled', 'cancelled')
+  paymentId: string;
+
+  isPaymentConfirmed: boolean;
+
+  // Joined or computed fields
   registeredAt: Date;
+  submissionId?: string | null;
+}
+
+export interface EnrollmentFilters {
+  status?: string;
+  search?: string; // Search by user name/competition
+  competitionId?: string;
+  isPaymentConfirmed?: boolean;
 }
