@@ -1,144 +1,356 @@
-import apiClient from "@/lib/axios";
-import { ApiResponse } from "@/lib/types/api.types";
-import {
+/**
+ * Auth Service - Supabase Integration
+ * 
+ * Replaces the legacy Axios-based auth service with native Supabase Auth.
+ * Function signatures remain identical to prevent UI breakage.
+ * 
+ * @see https://supabase.com/docs/guides/auth
+ */
+
+'use client';
+
+import { createClient } from '@/lib/supabase/client';
+import { mapDbProfileToUser, type User } from '@/lib/supabase/entity-mappers';
+import type {
   RegisterResponse,
-  User,
+  LoginResponse,
   VerifyEmailResponse,
   ForgotPasswordResponse,
   ResetPasswordResponse,
-  LoginResponse,
-} from "@/types/auth";
-import Cookies from "js-cookie";
+} from '@/types/auth';
 
 /**
- * Auth API endpoints
+ * Get current Supabase client instance
  */
-const AUTH_ENDPOINTS = {
-  REGISTER: "/auth/register",
-  LOGIN: "/auth/login",
-  LOGOUT: "/auth/logout",
-  VERIFY_EMAIL: "/auth/verify-email",
-  RESEND_VERIFICATION: "/auth/resend-verification",
-  FORGOT_PASSWORD: "/auth/forgot-password",
-  RESET_PASSWORD: "/auth/reset-password",
-  ME: "/auth/me",
-  SEND_OTP: "/auth/send-otp",
-  VERIFY_OTP: "/auth/verify-otp",
-} as const;
+function getSupabaseClient() {
+  return createClient();
+}
 
 /**
- * Auth Service
+ * Auth Service - Supabase Native Implementation
  */
 export const authService = {
   /**
    * Register with email and password
+   * Creates a new Supabase auth user and triggers email verification
    */
   register: async (data: {
     email: string;
     password: string;
     referralCode?: string;
   }): Promise<RegisterResponse> => {
-    // Interceptor returns ApiResponse directly
-    const response = (await apiClient.post(
-      AUTH_ENDPOINTS.REGISTER,
-      data
-    )) as ApiResponse<RegisterResponse>;
-    return response.data!;
+    const supabase = getSupabaseClient();
+
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        // Store referral code in user metadata
+        data: {
+          referred_by_code: data.referralCode,
+        },
+        // Email confirmation required
+        emailRedirectTo: `${window.location.origin}/verify`,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // User created - email verification sent automatically by Supabase
+    return {
+      message: 'Registration successful! Please check your email to verify your account.',
+      email: data.email,
+    };
   },
 
   /**
    * Login with email and password
+   * Authenticates user and establishes session
    */
   login: async (data: {
     email: string;
     password: string;
   }): Promise<LoginResponse> => {
-    // Interceptor returns ApiResponse directly
-    const response = (await apiClient.post(
-      AUTH_ENDPOINTS.LOGIN,
-      data
-    )) as ApiResponse<{ message: string; data: User }>;
+    const supabase = getSupabaseClient();
 
-    // Backend returns: { success: true, data: { message: "...", data: User } }
-    // After interceptor unwrap: { success: true, data: { message: "...", data: User } }
-    // So we need: response.data.data (the User object)
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
 
-    // Store CSRF token (it's set as cookie by backend, but we might need it)
-    const user = response.data!.data;
+    if (error) {
+      throw new Error(error.message);
+    }
 
-    return {
-      user,
-    };
+    if (!authData.user) {
+      throw new Error('Login failed - no user returned');
+    }
+
+    // Fetch the user's profile from the profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      // Profile might not exist yet for new users
+      console.warn('Profile fetch error:', profileError.message);
+    }
+
+    // Map the profile to frontend User type, or create minimal user from auth
+    const user: User = profile
+      ? mapDbProfileToUser(profile)
+      : {
+        id: authData.user.id,
+        uid: authData.user.id,
+        email: authData.user.email,
+        authProvider: 'email',
+        isProfileComplete: false,
+        createdAt: authData.user.created_at,
+        updatedAt: authData.user.updated_at || authData.user.created_at,
+      };
+
+    return { user };
+  },
+
+  /**
+   * Login with Google OAuth
+   * Redirects to Google for authentication
+   */
+  loginWithGoogle: async (): Promise<void> => {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
   },
 
   /**
    * Logout
+   * Signs out the user and clears the session
    */
   logout: async (): Promise<void> => {
-    await apiClient.post(AUTH_ENDPOINTS.LOGOUT);
-    Cookies.remove("csrf_token");
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw new Error(error.message);
+    }
   },
 
   /**
-   * Verify email with token
+   * Verify email with token (handled by Supabase automatically)
+   * This is called after user clicks the email verification link
    */
   verifyEmail: async (token: string): Promise<VerifyEmailResponse> => {
-    const response = (await apiClient.post(AUTH_ENDPOINTS.VERIFY_EMAIL, {
-      token,
-    })) as ApiResponse<{ message: string }>;
-    return response.data!;
+    // Supabase handles email verification automatically via the callback URL
+    // The token verification happens when the user clicks the link
+    // This method is kept for backward compatibility
+    return {
+      message: 'Email verification successful!',
+    };
   },
 
   /**
    * Resend verification email
    */
   resendVerification: async (email: string): Promise<{ message: string }> => {
-    const response = (await apiClient.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
       email,
-    })) as ApiResponse<{ message: string }>;
-    return response.data!;
+      options: {
+        emailRedirectTo: `${window.location.origin}/verify`,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      message: 'Verification email sent! Please check your inbox.',
+    };
   },
 
   /**
    * Request password reset
+   * Sends a password reset email
    */
   forgotPassword: async (email: string): Promise<ForgotPasswordResponse> => {
-    const response = (await apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, {
-      email,
-    })) as ApiResponse<{ message: string }>;
-    return response.data!;
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      message: 'Password reset email sent! Please check your inbox.',
+    };
   },
 
   /**
-   * Reset password with token
+   * Reset password with new password
+   * Called after user clicks the reset link and enters new password
    */
   resetPassword: async (data: {
     token: string;
     password: string;
   }): Promise<ResetPasswordResponse> => {
-    const response = (await apiClient.post(
-      AUTH_ENDPOINTS.RESET_PASSWORD,
-      data
-    )) as ApiResponse<{ message: string }>;
-    return response.data!;
+    const supabase = getSupabaseClient();
+
+    // The user should already be authenticated via the reset link
+    // We just need to update the password
+    const { error } = await supabase.auth.updateUser({
+      password: data.password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      message: 'Password reset successful! You can now login with your new password.',
+    };
   },
 
   /**
-   * ✅ UPDATED: Get current authenticated user from session
+   * Get current authenticated user from session
    */
   getMe: async (): Promise<User> => {
-    const response = (await apiClient.get(AUTH_ENDPOINTS.ME)) as ApiResponse<{
-      user: User;
-    }>;
-    return response.data!.user;
+    const supabase = getSupabaseClient();
+
+    // First get the authenticated user
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      throw new Error('Not authenticated');
+    }
+
+    // Then fetch their profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (profileError) {
+      // Return minimal user if profile doesn't exist
+      return {
+        id: authUser.id,
+        uid: authUser.id,
+        email: authUser.email,
+        phone: authUser.phone,
+        authProvider: 'email',
+        isProfileComplete: false,
+        createdAt: authUser.created_at,
+        updatedAt: authUser.updated_at || authUser.created_at,
+      };
+    }
+
+    return mapDbProfileToUser(profile);
   },
+
   /**
    * Send OTP (phone auth)
+   * Sends an OTP to the provided phone number
    */
   sendOtp: async (phone: string): Promise<{ message: string }> => {
-    const response = (await apiClient.post(AUTH_ENDPOINTS.SEND_OTP, {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.auth.signInWithOtp({
       phone,
-    })) as ApiResponse<{ message: string }>;
-    return response.data!;
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      message: 'OTP sent successfully!',
+    };
+  },
+
+  /**
+   * Verify OTP and login
+   */
+  verifyOtp: async (data: {
+    phone: string;
+    token: string;
+  }): Promise<LoginResponse> => {
+    const supabase = getSupabaseClient();
+
+    const { data: authData, error } = await supabase.auth.verifyOtp({
+      phone: data.phone,
+      token: data.token,
+      type: 'sms',
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!authData.user) {
+      throw new Error('OTP verification failed');
+    }
+
+    // Fetch or create profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    const user: User = profile
+      ? mapDbProfileToUser(profile)
+      : {
+        id: authData.user.id,
+        uid: authData.user.id,
+        phone: authData.user.phone,
+        authProvider: 'phone',
+        isProfileComplete: false,
+        createdAt: authData.user.created_at,
+        updatedAt: authData.user.updated_at || authData.user.created_at,
+      };
+
+    return { user };
+  },
+
+  /**
+   * Get current session (for internal use)
+   */
+  getSession: async () => {
+    const supabase = getSupabaseClient();
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return session;
+  },
+
+  /**
+   * Subscribe to auth state changes
+   */
+  onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
+    const supabase = getSupabaseClient();
+    return supabase.auth.onAuthStateChange(callback);
   },
 };

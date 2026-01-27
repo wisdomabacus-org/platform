@@ -1,13 +1,22 @@
+/**
+ * Auth Hooks - Supabase Integration
+ * 
+ * React hooks for authentication using Supabase.
+ */
+
+'use client';
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/stores/auth-store";
-import Cookies from "js-cookie";
 import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export const AUTH_KEYS = {
   me: ["auth", "me"] as const,
+  session: ["auth", "session"] as const,
 };
 
 export const useAuth = () => {
@@ -18,7 +27,7 @@ export const useAuth = () => {
   const registerMutation = useMutation({
     mutationFn: authService.register,
     onSuccess: (data) => {
-      toast.success(data.message || "Registration successful! Please login.");
+      toast.success(data.message || "Registration successful! Please check your email.");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Registration failed");
@@ -30,7 +39,10 @@ export const useAuth = () => {
     onSuccess: (data) => {
       setUser(data.user);
       queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
-      toast.success(data.message || "Login successful!");
+      toast.success("Login successful!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Login failed");
     },
   });
 
@@ -38,9 +50,8 @@ export const useAuth = () => {
     mutationFn: authService.logout,
     onSuccess: () => {
       clearAuthState();
-      Cookies.remove("csrf_token");
       queryClient.clear();
-      sessionStorage.clear(); // ✅ Clear session storage
+      sessionStorage.clear();
       toast.success("Logged out successfully");
       router.push("/");
     },
@@ -53,7 +64,8 @@ export const useAuth = () => {
     mutationFn: authService.verifyEmail,
     onSuccess: (data) => {
       toast.success(data.message || "Email verified successfully!");
-      router.push("/login");
+      // Refresh user data after verification
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Email verification failed");
@@ -84,10 +96,21 @@ export const useAuth = () => {
     mutationFn: authService.resetPassword,
     onSuccess: (data) => {
       toast.success(data.message || "Password reset successful!");
-      router.push("/login");
+      router.push("/");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Password reset failed");
+    },
+  });
+
+  // OTP mutations for phone auth
+  const sendOtpMutation = useMutation({
+    mutationFn: authService.sendOtp,
+    onSuccess: (data) => {
+      toast.success(data.message || "OTP sent!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to send OTP");
     },
   });
 
@@ -99,6 +122,7 @@ export const useAuth = () => {
     forgotPassword: forgotPasswordMutation.mutate,
     resetPassword: resetPasswordMutation.mutate,
     resendVerification: resendVerificationMutation.mutate,
+    sendOtp: sendOtpMutation.mutateAsync,
     isLoading:
       registerMutation.isPending ||
       loginMutation.isPending ||
@@ -106,27 +130,34 @@ export const useAuth = () => {
       verifyEmailMutation.isPending ||
       forgotPasswordMutation.isPending ||
       resendVerificationMutation.isPending ||
-      resetPasswordMutation.isPending,
+      resetPasswordMutation.isPending ||
+      sendOtpMutation.isPending,
   };
 };
 
 /**
- * ✅ UPDATED: Hook to fetch and sync current user from backend
+ * Hook to fetch and sync current user from Supabase
  */
 export const useCurrentUser = () => {
   const { setUser, setLoading, setInitialized, user, isAuthenticated } = useAuthStore();
-  const hasCsrfToken = typeof window !== 'undefined' && !!Cookies.get('csrf_token');
+  const queryClient = useQueryClient();
 
+  // Query to fetch current user
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: AUTH_KEYS.me,
-    queryFn: authService.getMe,
-    enabled: hasCsrfToken,
+    queryFn: async () => {
+      try {
+        return await authService.getMe();
+      } catch {
+        return null;
+      }
+    },
     retry: false,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
-  // ✅ FIX: Sync server state to store whenever data changes
+  // Sync server state to store whenever data changes
   useEffect(() => {
     if (data) {
       setUser(data);
@@ -145,6 +176,28 @@ export const useCurrentUser = () => {
     setLoading(isLoading);
   }, [isLoading, setLoading]);
 
+  // Subscribe to Supabase auth state changes
+  useEffect(() => {
+    const supabase = createClient();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Refetch user data when signed in or token refreshed
+          queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
+        } else if (event === 'SIGNED_OUT') {
+          // Clear user data on sign out
+          setUser(null);
+          queryClient.clear();
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [queryClient, setUser]);
+
   return {
     user: data || user,
     isAuthenticated: !!data || isAuthenticated,
@@ -152,4 +205,3 @@ export const useCurrentUser = () => {
     refetch,
   };
 };
-
