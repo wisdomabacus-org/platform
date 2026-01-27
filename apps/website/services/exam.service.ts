@@ -49,7 +49,7 @@ export const examService = {
       success: true,
       message: data.message || 'Exam started successfully',
       data: {
-        examPortalUrl: `${examPortalUrl}?session=${responseData.session_id}`,
+        examPortalUrl: `${examPortalUrl}?session=${responseData.session_token}`,
         examTitle: responseData.exam_title || responseData.examTitle,
         totalQuestions: responseData.total_questions || responseData.totalQuestions,
         durationMinutes: responseData.duration_minutes || responseData.durationMinutes,

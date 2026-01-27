@@ -1,35 +1,40 @@
 // src/features/exam/api/submissions.service.ts
-import apiClient from "@/lib/apiClient";
+import { supabase } from "@/lib/supabase";
+import { mapSubmissionResult, type DbSubmissionHistoryRow } from "@/lib/mappers";
 import type { ApiResponse } from "@/types/api.types";
-
-export interface SubmissionResult {
-  id: string;
-  userId: string;
-  examType: "competition" | "mock-test";
-  examId: string;
-  examTitle: string;
-  status: "in-progress" | "completed" | "abandoned";
-  score: number;
-  totalMarks: number;
-  correctCount: number;
-  incorrectCount: number;
-  unansweredCount: number;
-  percentage: number;
-  rank?: number;
-  submittedAt: string;
-  createdAt: string;
-}
+import type { SubmissionResult } from "@/types/exam.types";
 
 export const submissionsApi = {
   /**
    * GET /submissions/:id
-   * Fetch submission result by ID
+   * Fetch submission result by ID from user_submission_history view
    */
-  getSubmissionById: (
+  getSubmissionById: async (
     submissionId: string
   ): Promise<ApiResponse<SubmissionResult>> => {
-    return apiClient.get(`/submissions/${submissionId}`) as Promise<
-      ApiResponse<SubmissionResult>
-    >;
+
+    const { data, error } = await supabase
+      .from('user_submission_history')
+      .select('*')
+      .eq('submission_id', submissionId)
+      .single();
+
+    if (error) {
+      // Handle Supabase error
+      console.error("Error fetching submission:", error);
+      throw new Error(error.message || "Failed to fetch submission");
+    }
+
+    if (!data) {
+      throw new Error("Submission not found");
+    }
+
+    const result = mapSubmissionResult(data as DbSubmissionHistoryRow);
+
+    return {
+      success: true,
+      data: result,
+      message: "Submission loaded"
+    };
   },
 };

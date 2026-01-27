@@ -2,7 +2,7 @@ import { PracticeHeader } from "@/components/features/practice/practice-header";
 import { WorksheetGeneratorHero } from "@/components/features/practice/worksheet-generator-hero";
 import { CompetitionNudge } from "@/components/features/practice/competition-nudge";
 import { MockTestCard } from "@/components/features/practice/mock-test-card";
-import { mockTestsService } from "@/services/mock-tests.service";
+import { getAllMockTestsServer } from "@/services/mock-tests.service";
 import type { MockTest } from "@/types/mock-test";
 
 
@@ -10,7 +10,7 @@ export default async function PracticePage() {
   let mockTests: MockTest[] = [];
 
   try {
-    mockTests = await mockTestsService.getAll();
+    mockTests = await getAllMockTestsServer();
   } catch (error) {
     console.error("Failed to fetch mock tests:", error);
   }

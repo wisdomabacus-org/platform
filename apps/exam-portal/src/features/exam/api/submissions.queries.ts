@@ -1,6 +1,7 @@
 // src/features/exam/api/submissions.queries.ts
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { submissionsApi, type SubmissionResult } from "./submissions.service";
+import { submissionsApi } from "./submissions.service";
+import type { SubmissionResult } from "@/types/exam.types";
 import type { ApiResponse } from "@/types/api.types";
 
 export const submissionsQueryKeys = {

@@ -1,14 +1,14 @@
 import { TrainingBonusBanner } from "@/components/features/competition/list/training-bonus-banner";
 import { CompetitionFullCard } from "@/components/features/competition/list/competition-full-card";
 import { CompetitionsListHeader } from "@/components/features/competition/list/competitions-list-header";
-import { competitionsService } from "@/services/competitions.service";
+import { getAllPublicCompetitionsServer } from "@/services/competitions.service";
 import type { Competition } from "@/types/competition";
 
 export default async function CompetitionsListPage() {
   let competitions: Competition[] = [];
 
   try {
-    competitions = await competitionsService.getAllPublic({
+    competitions = await getAllPublicCompetitionsServer({
       isPublished: true,
       status: 'open'
     });

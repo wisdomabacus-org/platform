@@ -13,7 +13,7 @@ import { SyllabusSection } from "@/components/features/competition/details/sylla
 import { RulesSection } from "@/components/features/competition/details/rules-section";
 import { RegistrationTimer } from "@/components/features/competition/details/registration-timer";
 import { EnrollmentCard } from "@/components/features/competition/details/enrollment-card";
-import { competitionsService } from "@/services/competitions.service";
+import { getCompetitionByIdServer } from "@/services/competitions.service";
 import Link from "next/link";
 
 // ----------------------------------------------------------------------
@@ -34,7 +34,7 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
 
   let competition;
   try {
-    competition = await competitionsService.getById(slug);
+    competition = await getCompetitionByIdServer(slug);
   } catch (error) {
     console.error("Error fetching competition:", error);
     notFound();

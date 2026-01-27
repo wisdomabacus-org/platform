@@ -11,8 +11,8 @@ export interface ApiResponse<T = unknown> {
     message: string;
     details?: unknown;
   };
-  timestamp: string;
-  path: string;
+  timestamp?: string;
+  path?: string;
 }
 
 // Error response

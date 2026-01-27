@@ -81,3 +81,21 @@ export interface SubmitExamResponse {
   redirectUrl?: string;
   message?: string;
 }
+
+export interface SubmissionResult {
+  id: string;
+  userId: string;
+  examType: "competition" | "mock-test";
+  examId: string;
+  examTitle: string;
+  status: "in-progress" | "completed" | "abandoned";
+  score: number;
+  totalMarks: number;
+  correctCount: number;
+  incorrectCount: number;
+  unansweredCount: number;
+  percentage: number;
+  rank?: number;
+  submittedAt: string;
+  createdAt: string;
+}

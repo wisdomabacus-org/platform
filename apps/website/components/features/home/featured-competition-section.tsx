@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Calendar, MapPin, Users, Trophy, Medal, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { competitionsService } from "@/services/competitions.service";
+import { getFeaturedCompetitionServer } from "@/services/competitions.service";
 import { CompetitionFallbackSection } from "./competition-fallback-section";
 
 export const FeaturedCompetitionSection = async () => {
-    const competition = await competitionsService.getFeatured();
+    const competition = await getFeaturedCompetitionServer();
     if (!competition) {
         return <CompetitionFallbackSection />;
     }

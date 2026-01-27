@@ -1,6 +1,6 @@
 // src/pages/PortalInitializerPage.tsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { PortalLayout } from "@/components/layouts/PortalLayout";
@@ -22,10 +22,25 @@ const MESSAGE_CHANGE_INTERVAL = 1200; // 1.2 seconds
 const PortalInitializerPage = () => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const navigate = useNavigate();
-  const loadExam = useExamStore.use.loadExam();
+  const [searchParams] = useSearchParams();
+  const sessionTokenParam = searchParams.get("session");
 
-  // Call the initialization API immediately
-  const { data: response, isLoading, error } = useInitializeExamQuery();
+  const loadExam = useExamStore.use.loadExam();
+  const setSessionToken = useExamStore.use.setSessionToken();
+  const sessionToken = useExamStore.use.sessionToken();
+
+  // 1. Sync token from URL to store
+  useEffect(() => {
+    if (sessionTokenParam) {
+      setSessionToken(sessionTokenParam);
+      // Clean URL logic could go here
+    }
+  }, [sessionTokenParam, setSessionToken]);
+
+  // Call the initialization API only when token is available
+  const { data: response, isLoading, error } = useInitializeExamQuery({
+    enabled: !!(sessionToken || sessionTokenParam),
+  });
 
   // Cycle through loading messages
   useEffect(() => {

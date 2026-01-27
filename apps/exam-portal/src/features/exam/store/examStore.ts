@@ -13,8 +13,10 @@ interface ExamState {
   isExamSubmitted: boolean;
   examMetadata: ExamMetadata | null;
   questions: Question[];
+  sessionToken: string | null;
 
   // Actions
+  setSessionToken: (token: string) => void;
   setCurrentQuestion: (questionNumber: number) => void;
   goToNextQuestion: () => void;
   goToPreviousQuestion: () => void;
@@ -37,8 +39,10 @@ const useExamStoreBase = create<ExamState>()(
       isExamSubmitted: false,
       examMetadata: null,
       questions: [],
+      sessionToken: null,
 
       // Actions
+      setSessionToken: (token) => set({ sessionToken: token }),
       setCurrentQuestion: (questionNumber) =>
         set({ currentQuestion: questionNumber }),
 
@@ -101,6 +105,7 @@ const useExamStoreBase = create<ExamState>()(
           isExamSubmitted: false,
           examMetadata: null,
           questions: [],
+          sessionToken: null,
         }),
     }),
     { name: "ExamStore" }
