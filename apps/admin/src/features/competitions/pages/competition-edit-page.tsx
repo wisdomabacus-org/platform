@@ -1,11 +1,35 @@
-
 import { useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '@/shared/components/page-header';
 import { CompetitionForm } from '../components/competition-form';
-import { useCompetition, useUpdateCompetition, useUpdateCompetitionSyllabus, useUpdateCompetitionPrizes } from '../hooks/use-competitions';
+import {
+    useCompetition,
+    useUpdateCompetition,
+    useUpdateCompetitionSyllabus,
+    useUpdateCompetitionPrizes,
+} from '../hooks/use-competitions';
 import { ROUTES } from '@/config/constants';
 import { CompetitionFormValues } from '../types/competition-schema';
-import { Loader2 } from 'lucide-react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/components/ui/button';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { FileEdit } from 'lucide-react';
+
+function EditPageSkeleton() {
+    return (
+        <div className="px-4 py-6">
+            <div className="mx-auto max-w-3xl space-y-6">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                </div>
+                <div className="space-y-4">
+                    <Skeleton className="h-[200px] rounded-md" />
+                    <Skeleton className="h-[120px] rounded-md" />
+                    <Skeleton className="h-[100px] rounded-md" />
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function CompetitionEditPage() {
     const { id } = useParams<{ id: string }>();
@@ -16,11 +40,24 @@ export default function CompetitionEditPage() {
     const { mutateAsync: updatePrizes } = useUpdateCompetitionPrizes();
 
     if (isLoading) {
-        return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+        return <EditPageSkeleton />;
     }
 
     if (!competition) {
-        return <div>Competition not found</div>;
+        return (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-md bg-destructive/10">
+                    <FileEdit className="h-7 w-7 text-destructive" />
+                </div>
+                <h2 className="mt-4 text-lg font-semibold">Competition Not Found</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    The competition you're looking for doesn't exist or has been deleted.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.COMPETITIONS)} className="mt-4">
+                    Back to Competitions
+                </Button>
+            </div>
+        );
     }
 
     const handleSubmit = async (values: CompetitionFormValues) => {
@@ -44,19 +81,27 @@ export default function CompetitionEditPage() {
                 await updatePrizes({ id: id!, prizes: prizes });
             }
 
-            navigate(ROUTES.COMPETITIONS);
+            navigate(ROUTES.COMPETITIONS_DETAIL.replace(':id', id!));
         } catch (error) {
             console.error('Failed to update competition:', error);
         }
     };
 
     return (
-        <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-            <PageHeader
-                title={`Edit ${competition.title}`}
-                description="Update competition details."
-            />
-            <CompetitionForm initialData={competition} onSubmit={handleSubmit} isLoading={isPending} />
+        <div className="px-4 py-6">
+            <div className="mx-auto max-w-3xl">
+                <PageHeader
+                    title="Edit Competition"
+                    description={competition.title}
+                />
+                <div className="mt-6">
+                    <CompetitionForm
+                        initialData={competition}
+                        onSubmit={handleSubmit}
+                        isLoading={isPending}
+                    />
+                </div>
+            </div>
         </div>
     );
 }

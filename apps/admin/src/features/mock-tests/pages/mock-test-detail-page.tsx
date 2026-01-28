@@ -1,63 +1,49 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCompetition, useUpdateCompetition } from '../hooks/use-competitions';
+import { useMockTest, useUpdateMockTest } from '../hooks/use-mock-tests';
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Separator } from '@/shared/components/ui/separator';
-import { format } from 'date-fns';
 import {
     Edit,
-    Trophy,
+    FileText,
     Users,
-    IndianRupee,
-    Calendar,
     Clock,
     FileQuestion,
-    Send,
     Eye,
     EyeOff,
     Loader2,
     Award,
     BookOpen,
     BarChart3,
+    Lock,
+    Unlock,
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
-// Status badge configuration
-const STATUS_CONFIG: Record<
-    string,
-    { label: string; color: string; bgColor: string }
-> = {
-    draft: { label: 'Draft', color: 'text-slate-600', bgColor: 'bg-slate-100 dark:bg-slate-800' },
-    published: { label: 'Published', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    open: { label: 'Open', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30' },
-    live: { label: 'Live', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-    upcoming: { label: 'Upcoming', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-    ongoing: { label: 'Ongoing', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-    completed: { label: 'Completed', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-    closed: { label: 'Closed', color: 'text-zinc-600', bgColor: 'bg-zinc-100 dark:bg-zinc-800' },
-    archived: { label: 'Archived', color: 'text-zinc-500', bgColor: 'bg-zinc-100 dark:bg-zinc-800' },
+// Difficulty badge configuration
+const DIFFICULTY_CONFIG: Record<string, { color: string; bgColor: string }> = {
+    Beginner: { color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    Intermediate: { color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+    Advanced: { color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+    Expert: { color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
 };
 
 function DetailSkeleton() {
     return (
         <div className="space-y-6 px-4 py-6">
-            {/* Header Skeleton */}
             <div className="space-y-2">
                 <Skeleton className="h-8 w-64" />
                 <Skeleton className="h-4 w-40" />
             </div>
-
-            {/* Stats Skeleton */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
                     <Skeleton key={i} className="h-[90px] rounded-md" />
                 ))}
             </div>
-
-            {/* Tabs Skeleton */}
             <Skeleton className="h-10 w-72" />
             <Skeleton className="h-[250px] rounded-md" />
         </div>
@@ -100,18 +86,17 @@ function StatCard({
     );
 }
 
-export default function CompetitionDetailPage() {
+export default function MockTestDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { data: competition, isLoading } = useCompetition(id!);
-    const { mutate: updateCompetition, isPending: isUpdating } = useUpdateCompetition();
+    const { data: mockTest, isLoading } = useMockTest(id!);
+    const { mutate: updateMockTest, isPending: isUpdating } = useUpdateMockTest();
 
     const handlePublish = () => {
-        if (!competition) return;
-        const newStatus = competition.status === 'published' || competition.status === 'open' ? 'draft' : 'published';
-        updateCompetition({
+        if (!mockTest) return;
+        updateMockTest({
             id: id!,
-            data: { status: newStatus },
+            data: { is_published: !mockTest.is_published },
         });
     };
 
@@ -119,27 +104,24 @@ export default function CompetitionDetailPage() {
         return <DetailSkeleton />;
     }
 
-    if (!competition) {
+    if (!mockTest) {
         return (
             <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-md bg-destructive/10">
-                    <Trophy className="h-7 w-7 text-destructive" />
+                    <FileText className="h-7 w-7 text-destructive" />
                 </div>
-                <h2 className="mt-4 text-lg font-semibold">Competition Not Found</h2>
+                <h2 className="mt-4 text-lg font-semibold">Mock Test Not Found</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    The competition you're looking for doesn't exist or has been deleted.
+                    The mock test you're looking for doesn't exist or has been deleted.
                 </p>
-                <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.COMPETITIONS)} className="mt-4">
-                    Back to Competitions
+                <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.MOCK_TESTS)} className="mt-4">
+                    Back to Mock Tests
                 </Button>
             </div>
         );
     }
 
-    const status = competition.status || 'draft';
-    const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
-    const isPublished = status === 'published' || status === 'open' || status === 'live';
-    const estimatedRevenue = (competition.enrolled_count || 0) * (competition.enrollment_fee || 0);
+    const difficultyConfig = DIFFICULTY_CONFIG[mockTest.difficulty] || DIFFICULTY_CONFIG.Beginner;
 
     return (
         <div className="space-y-6 px-4 py-6">
@@ -148,31 +130,38 @@ export default function CompetitionDetailPage() {
                 <div>
                     <div className="flex flex-wrap items-center gap-2">
                         <h1 className="text-2xl font-bold tracking-tight">
-                            {competition.title}
+                            {mockTest.title}
                         </h1>
                         <Badge
                             variant="secondary"
                             className={cn(
                                 'text-xs font-medium',
-                                statusConfig.color,
-                                statusConfig.bgColor
+                                difficultyConfig.color,
+                                difficultyConfig.bgColor
                             )}
                         >
-                            {statusConfig.label}
+                            {mockTest.difficulty}
                         </Badge>
+                        <Badge variant={mockTest.is_published ? 'default' : 'outline'}>
+                            {mockTest.is_published ? 'Published' : 'Draft'}
+                        </Badge>
+                        {mockTest.is_locked && (
+                            <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                <Lock className="h-3 w-3" />
+                                Paid
+                            </Badge>
+                        )}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        {competition.season} Season •{' '}
-                        {competition.exam_date
-                            ? format(new Date(competition.exam_date), 'EEEE, MMMM d, yyyy')
-                            : 'No exam date set'}
+                        Grades {mockTest.min_grade}-{mockTest.max_grade} •{' '}
+                        Created {format(new Date(mockTest.created_at), 'MMM d, yyyy')}
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(ROUTES.COMPETITIONS_EDIT.replace(':id', id!))}
+                        onClick={() => navigate(ROUTES.MOCK_TESTS_EDIT.replace(':id', id!))}
                         className="gap-1.5"
                     >
                         <Edit className="h-3.5 w-3.5" />
@@ -181,12 +170,12 @@ export default function CompetitionDetailPage() {
                     <Button size="sm" onClick={handlePublish} disabled={isUpdating} className="gap-1.5">
                         {isUpdating ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : isPublished ? (
+                        ) : mockTest.is_published ? (
                             <EyeOff className="h-3.5 w-3.5" />
                         ) : (
                             <Eye className="h-3.5 w-3.5" />
                         )}
-                        {isPublished ? 'Unpublish' : 'Publish'}
+                        {mockTest.is_published ? 'Unpublish' : 'Publish'}
                     </Button>
                 </div>
             </div>
@@ -194,32 +183,32 @@ export default function CompetitionDetailPage() {
             {/* Stats Grid */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    title="Total Enrollments"
-                    value={competition.enrolled_count || 0}
+                    title="Total Attempts"
+                    value={mockTest.attempt_count || 0}
                     icon={Users}
-                    description="Students registered"
+                    description="Students attempted"
                     iconColor="bg-blue-500/10 text-blue-500"
                 />
                 <StatCard
-                    title="Estimated Revenue"
-                    value={`₹${estimatedRevenue.toLocaleString()}`}
-                    icon={IndianRupee}
-                    description={`Fee: ₹${competition.enrollment_fee || 0}`}
+                    title="Questions"
+                    value={mockTest.total_questions || 0}
+                    icon={FileQuestion}
+                    description="Total questions"
                     iconColor="bg-emerald-500/10 text-emerald-500"
                 />
                 <StatCard
                     title="Duration"
-                    value={`${competition.duration || 0} mins`}
+                    value={`${mockTest.duration || 0} mins`}
                     icon={Clock}
-                    description={`${competition.total_questions || 0} questions`}
+                    description="Time limit"
                     iconColor="bg-orange-500/10 text-orange-500"
                 />
                 <StatCard
-                    title="Total Marks"
-                    value={competition.total_marks || 0}
-                    icon={Award}
-                    description={`Grades ${competition.min_grade || 1}-${competition.max_grade || 12}`}
-                    iconColor="bg-purple-500/10 text-purple-500"
+                    title="Access"
+                    value={mockTest.is_locked ? 'Paid' : 'Free'}
+                    icon={mockTest.is_locked ? Lock : Unlock}
+                    description={mockTest.is_active ? 'Active' : 'Inactive'}
+                    iconColor={mockTest.is_locked ? 'bg-amber-500/10 text-amber-500' : 'bg-purple-500/10 text-purple-500'}
                 />
             </div>
 
@@ -238,9 +227,9 @@ export default function CompetitionDetailPage() {
                         <FileQuestion className="h-3.5 w-3.5" />
                         Questions
                     </TabsTrigger>
-                    <TabsTrigger value="leaderboard" className="gap-1.5 rounded px-3 text-sm">
+                    <TabsTrigger value="analytics" className="gap-1.5 rounded px-3 text-sm">
                         <BarChart3 className="h-3.5 w-3.5" />
-                        Leaderboard
+                        Analytics
                     </TabsTrigger>
                 </TabsList>
 
@@ -249,70 +238,60 @@ export default function CompetitionDetailPage() {
                     <div className="rounded-md border p-4">
                         <h4 className="mb-2 text-sm font-semibold">Description</h4>
                         <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                            {competition.description || 'No description provided.'}
+                            {mockTest.description || 'No description provided.'}
                         </p>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        {/* Schedule */}
+                        {/* Details */}
                         <div className="rounded-md border p-4">
                             <div className="mb-3 flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <h4 className="text-sm font-semibold">Schedule</h4>
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <h4 className="text-sm font-semibold">Details</h4>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Registration Opens</span>
-                                    <span>
-                                        {competition.registration_start_date
-                                            ? format(new Date(competition.registration_start_date), 'MMM d, yyyy')
-                                            : 'Not set'}
-                                    </span>
+                                    <span className="text-muted-foreground">Grade Range</span>
+                                    <span>Grade {mockTest.min_grade} - {mockTest.max_grade}</span>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Registration Closes</span>
-                                    <span>
-                                        {competition.registration_end_date
-                                            ? format(new Date(competition.registration_end_date), 'MMM d, yyyy')
-                                            : 'Not set'}
-                                    </span>
+                                    <span className="text-muted-foreground">Difficulty</span>
+                                    <span className="font-medium">{mockTest.difficulty}</span>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Exam Date</span>
-                                    <span className="font-medium">
-                                        {competition.exam_date
-                                            ? format(new Date(competition.exam_date), 'MMM d, yyyy')
-                                            : 'Not set'}
-                                    </span>
+                                    <span className="text-muted-foreground">Sort Order</span>
+                                    <span>{mockTest.sort_order || 0}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Configuration */}
+                        {/* Settings */}
                         <div className="rounded-md border p-4">
                             <div className="mb-3 flex items-center gap-2">
                                 <Award className="h-4 w-4 text-muted-foreground" />
-                                <h4 className="text-sm font-semibold">Configuration</h4>
+                                <h4 className="text-sm font-semibold">Settings</h4>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Duration</span>
-                                    <span>{competition.duration || 0} minutes</span>
+                                    <span className="text-muted-foreground">Status</span>
+                                    <Badge variant={mockTest.is_active ? 'default' : 'secondary'} className="text-xs">
+                                        {mockTest.is_active ? 'Active' : 'Inactive'}
+                                    </Badge>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Total Marks</span>
-                                    <span>{competition.total_marks || 0}</span>
+                                    <span className="text-muted-foreground">Access Type</span>
+                                    <Badge variant="outline" className="text-xs">
+                                        {mockTest.is_locked ? 'Paid' : 'Free'}
+                                    </Badge>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Entry Fee</span>
-                                    <span className="font-medium">
-                                        {competition.enrollment_fee
-                                            ? `₹${competition.enrollment_fee}`
-                                            : 'Free'}
+                                    <span className="text-muted-foreground">Last Updated</span>
+                                    <span className="text-xs">
+                                        {format(new Date(mockTest.updated_at), 'MMM d, yyyy')}
                                     </span>
                                 </div>
                             </div>
@@ -322,26 +301,24 @@ export default function CompetitionDetailPage() {
                     {/* Quick Actions */}
                     <div className="rounded-md border p-4">
                         <h4 className="mb-1 text-sm font-semibold">Quick Actions</h4>
-                        <p className="mb-3 text-xs text-muted-foreground">Common tasks for this competition</p>
+                        <p className="mb-3 text-xs text-muted-foreground">Common tasks for this mock test</p>
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 className="gap-1.5"
-                                onClick={() =>
-                                    navigate(ROUTES.COMPETITIONS_QUESTIONS.replace(':id', id!))
-                                }
+                                onClick={() => navigate(ROUTES.MOCK_TESTS_QUESTIONS.replace(':id', id!))}
                             >
                                 <FileQuestion className="h-3.5 w-3.5" />
                                 Manage Questions
                             </Button>
                             <Button variant="outline" size="sm" className="gap-1.5">
                                 <Users className="h-3.5 w-3.5" />
-                                View Enrollments
+                                View Attempts
                             </Button>
                             <Button variant="outline" size="sm" className="gap-1.5">
-                                <Send className="h-3.5 w-3.5" />
-                                Send Notifications
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                View Analytics
                             </Button>
                         </div>
                     </div>
@@ -350,9 +327,9 @@ export default function CompetitionDetailPage() {
                 <TabsContent value="participants" className="mt-4">
                     <div className="flex flex-col items-center justify-center rounded-md border py-14 text-center">
                         <Users className="h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="mt-3 text-base font-semibold">Participants List</h3>
+                        <h3 className="mt-3 text-base font-semibold">Participant Attempts</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            View and manage enrolled students here.
+                            View students who have attempted this mock test.
                         </p>
                         <Button variant="outline" size="sm" className="mt-4">
                             Coming Soon
@@ -365,26 +342,24 @@ export default function CompetitionDetailPage() {
                         <FileQuestion className="h-10 w-10 text-muted-foreground/50" />
                         <h3 className="mt-3 text-base font-semibold">Question Management</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Assign question banks and manage exam questions.
+                            Assign question banks and manage test questions.
                         </p>
                         <Button
                             size="sm"
                             className="mt-4"
-                            onClick={() =>
-                                navigate(ROUTES.COMPETITIONS_QUESTIONS.replace(':id', id!))
-                            }
+                            onClick={() => navigate(ROUTES.MOCK_TESTS_QUESTIONS.replace(':id', id!))}
                         >
                             Manage Questions
                         </Button>
                     </div>
                 </TabsContent>
 
-                <TabsContent value="leaderboard" className="mt-4">
+                <TabsContent value="analytics" className="mt-4">
                     <div className="flex flex-col items-center justify-center rounded-md border py-14 text-center">
                         <BarChart3 className="h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="mt-3 text-base font-semibold">Competition Leaderboard</h3>
+                        <h3 className="mt-3 text-base font-semibold">Test Analytics</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            View rankings and results after the competition ends.
+                            View performance metrics and completion rates.
                         </p>
                         <Button variant="outline" size="sm" className="mt-4">
                             Coming Soon

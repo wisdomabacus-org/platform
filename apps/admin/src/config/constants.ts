@@ -42,6 +42,7 @@ export const ROUTES = {
   SUBMISSIONS: '/submissions',
   MOCK_TESTS: '/mock-tests',
   MOCK_TESTS_CREATE: '/mock-tests/create',
+  MOCK_TESTS_DETAIL: '/mock-tests/:id',
   MOCK_TESTS_EDIT: '/mock-tests/:id/edit',
   MOCK_TESTS_QUESTIONS: '/mock-tests/:id/questions',
   LIVE_CLASSES: '/live-classes',

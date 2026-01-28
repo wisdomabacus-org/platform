@@ -29,6 +29,7 @@ import LiveClassesPage from '@/features/live-classes/pages/live-classes-page';
 
 import MockTestsPage from '@/features/mock-tests/pages/mock-tests-page';
 import MockTestCreatePage from '@/features/mock-tests/pages/mock-test-create-page';
+import MockTestDetailPage from '@/features/mock-tests/pages/mock-test-detail-page';
 import MockTestEditPage from '@/features/mock-tests/pages/mock-test-edit-page';
 import MockTestQuestionsPage from '@/features/mock-tests/pages/mock-test-questions-page';
 
@@ -69,6 +70,7 @@ export function AppRoutes() {
 
           <Route path={ROUTES.MOCK_TESTS} element={<MockTestsPage />} />
           <Route path={ROUTES.MOCK_TESTS_CREATE} element={<MockTestCreatePage />} />
+          <Route path={ROUTES.MOCK_TESTS_DETAIL} element={<MockTestDetailPage />} />
           <Route path={ROUTES.MOCK_TESTS_EDIT} element={<MockTestEditPage />} />
           <Route path={ROUTES.MOCK_TESTS_QUESTIONS} element={<MockTestQuestionsPage />} />
 

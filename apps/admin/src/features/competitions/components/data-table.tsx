@@ -22,8 +22,121 @@ import {
 import { CompetitionsTableToolbar } from './table-toolbar';
 import type { Competition } from '../types/competition.types';
 import { PaginationBar } from '@/shared/components/pagination-bar';
+import { Button } from '@/shared/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  onRowClick?: (row: TData) => void;
+  pageCount?: number;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+}
+
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  onRowClick,
+  pageCount,
+  pagination: externalPagination,
+  onPaginationChange,
+}: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 20,
+  });
+
+  const pagination = externalPagination || internalPagination;
+  const setPagination = onPaginationChange || setInternalPagination;
+
+  const table = useReactTable({
+    data,
+    columns,
+    pageCount,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    manualPagination: !!pageCount,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <UITable>
+          <TableHeader>
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id}>
+                {hg.headers.map((h) => (
+                  <TableHead key={h.id}>
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                  onClick={() => onRowClick?.(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                  No competitions found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </UITable>
+      </div>
+
+      {/* Pagination */}
+      {pageCount && pageCount > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-muted-foreground">
+            Page {pagination.pageIndex + 1} of {pageCount}
+          </p>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CompetitionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   pageSize?: number;
@@ -33,7 +146,7 @@ export function CompetitionsDataTable<TData, TValue>({
   columns,
   data,
   pageSize = 10,
-}: DataTableProps<TData, TValue>) {
+}: CompetitionsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState<string>('');
@@ -62,7 +175,7 @@ export function CompetitionsDataTable<TData, TValue>({
         return Array.isArray(arr) && arr.includes(Number(filterValue));
       },
       withinRegistration: (row, _columnId, filter) => {
-        if (!filter || (!filter.from && !filter.to)) return true;
+        if (!filter || (!(filter as any).from && !(filter as any).to)) return true;
         const from = (filter as any).from ? new Date((filter as any).from) : undefined;
         const to = (filter as any).to ? new Date((filter as any).to) : undefined;
 
