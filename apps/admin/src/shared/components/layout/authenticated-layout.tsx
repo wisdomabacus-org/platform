@@ -30,7 +30,7 @@ function AuthenticatedLayoutInner() {
                         <ThemeToggle />
                     </div>
                 </Header>
-                <Main fixed>
+                <Main fixed className="h-full overflow-auto no-scrollbar">
                     <Outlet />
                 </Main>
             </SidebarInset>
