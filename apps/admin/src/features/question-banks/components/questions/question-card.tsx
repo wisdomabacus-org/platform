@@ -27,12 +27,14 @@ export function QuestionCard({ question, index, onDelete }: Props) {
                         {question.operatorType}
                     </span>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDelete?.(question.id)}>
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
-                    <GripVertical className="h-3 w-3 text-muted-foreground/30 cursor-grab" />
-                </div>
+                {onDelete && (
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDelete(question.id)}>
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <GripVertical className="h-3 w-3 text-muted-foreground/30 cursor-grab" />
+                    </div>
+                )}
             </div>
 
             {/* Content: Operation Display */}

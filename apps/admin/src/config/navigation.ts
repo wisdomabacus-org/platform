@@ -5,11 +5,9 @@ import {
     Trophy,
     Receipt,
     CreditCard,
-    Award,
     FileText,
     Inbox,
     UserPlus,
-    Tv,
     BookOpen
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
@@ -76,21 +74,7 @@ export const navigationGroups: NavGroup[] = [
             },
         ],
     },
-    {
-        label: 'Operations',
-        items: [
-            {
-                title: 'Submissions',
-                url: ROUTES.RESULTS,
-                icon: Award,
-            },
-            {
-                title: 'Exam Sessions',
-                url: ROUTES.EXAM_SESSIONS,
-                icon: Tv,
-            },
-        ],
-    },
+
     {
         label: 'Finance',
         items: [

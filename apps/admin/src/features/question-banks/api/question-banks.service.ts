@@ -5,6 +5,10 @@ export const questionBanksService = {
     getAll: async (filters: QuestionBankFilters = {}) => {
         const { search, minGrade, maxGrade, isActive, bankType, status, page = 0, limit = 10 } = filters;
 
+        // Base query to get count first? No, select with count is standard.
+        // However, if the Offset is >= Count, Supabase can throw 416.
+        // But we are using .range(), which usually returns empty array if out of bounds, unless it's strictly enforced.
+
         let query = supabase
             .from('question_banks')
             .select('*, questions:questions(count)', { count: 'exact' });
@@ -35,10 +39,16 @@ export const questionBanksService = {
             .order('created_at', { ascending: false })
             .range(from, to);
 
-        if (error) throw error;
+        if (error) {
+            // 416 means range not satisfiable - likely page is out of bounds or empty table
+            if (error.code === 'PGRST103' || error.message.includes('416')) {
+                return { data: [], total: 0, page, limit };
+            }
+            throw error;
+        }
 
         return {
-            data: data.map((item: any) => ({
+            data: (data || []).map((item: any) => ({
                 id: item.id,
                 title: item.title,
                 description: item.description,

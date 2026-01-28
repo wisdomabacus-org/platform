@@ -18,7 +18,7 @@ export default function QuestionBankCreatePage() {
     };
 
     return (
-        <div className="px-4 py-6 w-full">
+        <div className="px-4 py-6 w-full max-w-7xl mx-auto">
             <div className="space-y-6">
                 <PageHeader
                     title="Create Question Bank"

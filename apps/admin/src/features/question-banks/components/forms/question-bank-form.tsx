@@ -104,7 +104,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-xs font-medium uppercase text-muted-foreground">Usage Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className="bg-muted/30">
                                                     <SelectValue placeholder="Select usage context" />
@@ -142,7 +142,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
                                             <FormLabel className="text-xs font-medium uppercase text-muted-foreground">From Grade</FormLabel>
                                             <Select
                                                 onValueChange={(val) => field.onChange(parseInt(val))}
-                                                defaultValue={field.value.toString()}
+                                                value={field.value.toString()}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger className="bg-muted/30">
@@ -170,7 +170,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
                                             <FormLabel className="text-xs font-medium uppercase text-muted-foreground">To Grade</FormLabel>
                                             <Select
                                                 onValueChange={(val) => field.onChange(parseInt(val))}
-                                                defaultValue={field.value.toString()}
+                                                value={field.value.toString()}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger className="bg-muted/30">
@@ -203,7 +203,7 @@ export function QuestionBankForm({ initial, onCancel, onSave, isLoading }: Props
                             render={({ field }) => (
                                 <FormItem className="flex items-center gap-2 space-y-0">
                                     <FormLabel className="text-sm font-medium">Status:</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-8 w-32 bg-background">
                                                 <SelectValue />

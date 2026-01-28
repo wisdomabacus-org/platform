@@ -46,10 +46,13 @@ export interface QuestionOption {
     index: number;
 }
 
+export type QuestionType = 'abacus' | 'text' | 'image';
+
 // Abacus-style question with operations
 export interface Question {
     id: string;
     bankId: string;
+    type: QuestionType; // New field
     // For abacus: operations is the array of numbers (with signs for subtraction)
     // e.g., [15, 8, -3, 12] means 15 + 8 - 3 + 12 = 32
     operations: number[];

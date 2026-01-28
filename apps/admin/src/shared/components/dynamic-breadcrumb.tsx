@@ -15,7 +15,6 @@ const routeNameMap: Record<string, string> = {
   [ROUTES.COMPETITIONS]: 'Competitions',
   [ROUTES.ENROLLMENTS]: 'Enrollments',
   [ROUTES.PAYMENTS]: 'Payments',
-  [ROUTES.RESULTS]: 'Results',
   [ROUTES.MOCK_TESTS]: 'Mock Tests',
   [ROUTES.LIVE_CLASSES]: 'Live Classes',
   [ROUTES.QUESTION_BANKS]: 'Question Banks',

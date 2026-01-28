@@ -46,7 +46,7 @@ export default function QuestionBanksPage() {
     // Derived state for table loading
     const { data: result, isLoading: isInitialLoading, isFetching } = useQuestionBanks({
         ...filters,
-        page: pagination.pageIndex + 1,
+        page: pagination.pageIndex,
         limit: pagination.pageSize,
     });
 

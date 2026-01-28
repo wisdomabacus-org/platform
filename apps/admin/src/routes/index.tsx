@@ -16,11 +16,7 @@ import CompetitionQuestionsPage from '@/features/competitions/pages/competition-
 
 import EnrollmentsPage from '@/features/enrollments/pages/enrollments-page';
 import PaymentsPage from '@/features/payments/pages/payments-page';
-import ResultsPage from '@/features/results/pages/results-page';
-import ResultDetailPage from '@/features/results/pages/result-detail-page';
-import SubmissionsPage from '@/features/results/pages/submissions-page';
 
-import ExamSessionsPage from '@/features/exam-sessions/pages/exam-sessions-page';
 import RequestsPage from '@/features/requests/pages/requests-page';
 import ReferralsPage from '@/features/referrals/pages/referrals-page';
 import SettingsPage from '@/features/settings/pages/settings-page';
@@ -37,6 +33,7 @@ import QuestionBanksPage from '@/features/question-banks/pages/question-banks-pa
 import QuestionBankCreatePage from '@/features/question-banks/pages/question-bank-create-page';
 import QuestionBankDetailPage from '@/features/question-banks/pages/question-bank-detail-page';
 import QuestionBankEditPage from '@/features/question-banks/pages/question-bank-edit-page';
+import QuestionBankManagePage from '@/features/question-banks/pages/question-bank-manage-page';
 
 import DashboardPage from '@/features/dashboard/pages/dashboard-page';
 
@@ -71,6 +68,7 @@ export function AppRoutes() {
           <Route path={ROUTES.QUESTION_BANKS_CREATE} element={<QuestionBankCreatePage />} />
           <Route path={ROUTES.QUESTION_BANKS_DETAIL} element={<QuestionBankDetailPage />} />
           <Route path={ROUTES.QUESTION_BANKS_EDIT} element={<QuestionBankEditPage />} />
+          <Route path={ROUTES.QUESTION_BANKS_MANAGE} element={<QuestionBankManagePage />} />
 
           <Route path={ROUTES.MOCK_TESTS} element={<MockTestsPage />} />
           <Route path={ROUTES.MOCK_TESTS_CREATE} element={<MockTestCreatePage />} />
@@ -80,10 +78,6 @@ export function AppRoutes() {
 
           <Route path={ROUTES.ENROLLMENTS} element={<EnrollmentsPage />} />
           <Route path={ROUTES.PAYMENTS} element={<PaymentsPage />} />
-          <Route path={ROUTES.RESULTS} element={<ResultsPage />} />
-          <Route path={ROUTES.RESULTS_DETAIL} element={<ResultDetailPage />} />
-          <Route path={ROUTES.SUBMISSIONS} element={<SubmissionsPage />} />
-          <Route path={ROUTES.EXAM_SESSIONS} element={<ExamSessionsPage />} />
           <Route path={ROUTES.REQUESTS} element={<RequestsPage />} />
           <Route path={ROUTES.REFERRALS} element={<ReferralsPage />} />
           <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />

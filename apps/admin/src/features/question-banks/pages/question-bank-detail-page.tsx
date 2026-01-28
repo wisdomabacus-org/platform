@@ -11,7 +11,8 @@ import {
 import { ROUTES } from '@/config/constants';
 
 import { format } from 'date-fns';
-import { QuestionBankQuestions } from '../components/questions/question-bank-questions';
+import { QuestionBankQuestionsList } from '../components/questions/question-bank-questions-list';
+
 
 function DetailSkeleton() {
     return (
@@ -102,6 +103,7 @@ export default function QuestionBankDetailPage() {
                             </span>
                         </div>
                     </div>
+
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
@@ -110,7 +112,15 @@ export default function QuestionBankDetailPage() {
                             className="gap-1.5"
                         >
                             <Edit className="h-3.5 w-3.5" />
-                            Edit Settings
+                            Edit Metadata
+                        </Button>
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => navigate(ROUTES.QUESTION_BANKS_MANAGE.replace(':id', id!))}
+                            className="gap-1.5"
+                        >
+                            Manage Questions
                         </Button>
                     </div>
                 </div>
@@ -118,7 +128,10 @@ export default function QuestionBankDetailPage() {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden bg-muted/10">
-                <QuestionBankQuestions bankId={id!} />
+                <h2 className="px-6 pt-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    Questions Preview ({questionBank.questionsCount || 0})
+                </h2>
+                <QuestionBankQuestionsList bankId={id!} />
             </div>
         </div>
     );
