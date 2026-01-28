@@ -34,7 +34,9 @@ import MockTestEditPage from '@/features/mock-tests/pages/mock-test-edit-page';
 import MockTestQuestionsPage from '@/features/mock-tests/pages/mock-test-questions-page';
 
 import QuestionBanksPage from '@/features/question-banks/pages/question-banks-page';
-import QuestionBanksQuestionsPage from '@/features/question-banks/pages/question-banks-questions-page';
+import QuestionBankCreatePage from '@/features/question-banks/pages/question-bank-create-page';
+import QuestionBankDetailPage from '@/features/question-banks/pages/question-bank-detail-page';
+import QuestionBankEditPage from '@/features/question-banks/pages/question-bank-edit-page';
 
 import DashboardPage from '@/features/dashboard/pages/dashboard-page';
 
@@ -66,7 +68,9 @@ export function AppRoutes() {
           />
 
           <Route path={ROUTES.QUESTION_BANKS} element={<QuestionBanksPage />} />
-          <Route path={ROUTES.QUESTION_BANKS_QUESTIONS} element={<QuestionBanksQuestionsPage />} />
+          <Route path={ROUTES.QUESTION_BANKS_CREATE} element={<QuestionBankCreatePage />} />
+          <Route path={ROUTES.QUESTION_BANKS_DETAIL} element={<QuestionBankDetailPage />} />
+          <Route path={ROUTES.QUESTION_BANKS_EDIT} element={<QuestionBankEditPage />} />
 
           <Route path={ROUTES.MOCK_TESTS} element={<MockTestsPage />} />
           <Route path={ROUTES.MOCK_TESTS_CREATE} element={<MockTestCreatePage />} />

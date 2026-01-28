@@ -18,6 +18,8 @@ const routeNameMap: Record<string, string> = {
   [ROUTES.RESULTS]: 'Results',
   [ROUTES.MOCK_TESTS]: 'Mock Tests',
   [ROUTES.LIVE_CLASSES]: 'Live Classes',
+  [ROUTES.QUESTION_BANKS]: 'Question Banks',
+  [ROUTES.QUESTION_BANKS_CREATE]: 'Create Bank',
 };
 
 export function DynamicBreadcrumb() {

@@ -1,66 +1,94 @@
-
-import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
+import { Question } from '../../types/question-bank.types';
+import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { Edit2, Trash2 } from 'lucide-react';
-import { Question } from '../../types/question-bank.types';
+import { Trash2, GripVertical } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Props {
     question: Question;
     index: number;
-    onEdit: (q: Question) => void;
-    onDelete: (id: string) => void;
+    onDelete?: (id: string) => void;
+    onEdit?: (question: Question) => void;
 }
 
-export function QuestionCard({ question, index, onEdit, onDelete }: Props) {
+export function QuestionCard({ question, index, onDelete }: Props) {
+    const isMathOp = ['multiplication', 'division'].includes(question.operatorType);
+
     return (
-        <Card className="flex flex-col h-full">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <Card className="group relative flex flex-col overflow-hidden border-muted transition-all hover:border-primary/20 hover:shadow-md">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2 transition-colors group-hover:bg-muted/30">
                 <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="h-6 w-6 shrink-0 items-center justify-center rounded-full p-0">
-                        {index + 1}
+                    <Badge variant="outline" className="h-5 min-w-6 justify-center px-1 text-[10px] font-medium text-muted-foreground bg-background">
+                        #{index + 1}
                     </Badge>
-                    <span className="text-xs text-muted-foreground font-medium">
-                        {question.marks} Marks
+                    <span className="text-[10px] font-medium uppercase text-muted-foreground tracking-wider">
+                        {question.operatorType}
                     </span>
                 </div>
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(question)}>
-                        <Edit2 className="h-4 w-4" />
+                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDelete?.(question.id)}>
+                        <Trash2 className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(question.id)}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <GripVertical className="h-3 w-3 text-muted-foreground/30 cursor-grab" />
                 </div>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-4 pt-2">
-                <div className="prose prose-sm max-w-none text-sm dark:prose-invert">
-                    <p className="whitespace-pre-wrap">{question.text}</p>
+            </div>
+
+            {/* Content: Operation Display */}
+            <div className="flex flex-1 flex-col items-center justify-center p-5 min-h-[140px]">
+                <div className={cn(
+                    "flex flex-col items-end font-mono font-bold tracking-widest text-foreground",
+                    question.operations.length > 5 ? "text-lg" : "text-xl",
+                    isMathOp ? "flex-row gap-3 items-center" : ""
+                )}>
+                    {isMathOp ? (
+                        <>
+                            <span>{question.operations[0]}</span>
+                            <span className="text-muted-foreground">{question.operatorType === 'multiplication' ? '×' : '÷'}</span>
+                            <span>{question.operations[1]}</span>
+                        </>
+                    ) : (
+                        // Vertical Stack for Abacus (Addition/Subtraction)
+                        question.operations.map((num, idx) => {
+                            const isNegative = num < 0;
+                            const val = Math.abs(num);
+                            return (
+                                <div key={idx} className="relative flex items-center justify-end w-full">
+                                    {isNegative && <span className="absolute -left-4 text-muted-foreground font-normal">-</span>}
+                                    <span>{val}</span>
+                                </div>
+                            );
+                        })
+                    )}
+
+                    {/* Divider & Answer */}
+                    <div className="mt-2 w-12 border-t-2 border-primary/20" />
+                    <div className="mt-1 text-emerald-600 dark:text-emerald-400">
+                        {question.correctAnswer}
+                    </div>
                 </div>
+            </div>
 
-                {question.imageUrl && (
-                    <img src={question.imageUrl} alt="Question" className="rounded-md max-h-40 object-contain bg-slate-50 dark:bg-slate-900 w-full" />
-                )}
-
-                <div className="space-y-2">
-                    {question.options.map((opt, i) => (
+            {/* Footer: Options Preview */}
+            <div className="border-t bg-muted/5 px-3 py-2">
+                <div className="grid grid-cols-4 gap-1">
+                    {question.options.map((opt, idx) => (
                         <div
-                            key={opt.id || i}
-                            className={`flex items-center rounded-md border px-3 py-2 text-sm ${i === question.correctOptionIndex
-                                ? 'border-green-500 bg-green-50 dark:border-green-900 dark:bg-green-900/10'
-                                : 'border-transparent bg-muted'
-                                }`}
+                            key={idx}
+                            className={cn(
+                                "flex h-6 items-center justify-center rounded text-[10px] font-medium transition-colors",
+                                idx === question.correctOptionIndex
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20"
+                                    : "bg-muted text-muted-foreground"
+                            )}
+                            title={opt.text}
                         >
-                            <span className="mr-3 font-mono text-xs text-muted-foreground">
-                                {String.fromCharCode(65 + i)}.
-                            </span>
-                            <span className={i === question.correctOptionIndex ? 'font-medium text-green-700 dark:text-green-300' : ''}>
-                                {opt.text}
-                            </span>
+                            {opt.text}
                         </div>
                     ))}
                 </div>
-            </CardContent>
+            </div>
         </Card>
     );
 }

@@ -825,6 +825,7 @@ export type Database = {
       }
       question_banks: {
         Row: {
+          bank_type: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -832,6 +833,7 @@ export type Database = {
           is_active: boolean | null
           max_grade: number | null
           min_grade: number | null
+          status: string | null
           tags: string[] | null
           title: string
           total_marks: number | null
@@ -839,6 +841,7 @@ export type Database = {
           usage_count: number | null
         }
         Insert: {
+          bank_type?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -846,6 +849,7 @@ export type Database = {
           is_active?: boolean | null
           max_grade?: number | null
           min_grade?: number | null
+          status?: string | null
           tags?: string[] | null
           title: string
           total_marks?: number | null
@@ -853,6 +857,7 @@ export type Database = {
           usage_count?: number | null
         }
         Update: {
+          bank_type?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -860,6 +865,7 @@ export type Database = {
           is_active?: boolean | null
           max_grade?: number | null
           min_grade?: number | null
+          status?: string | null
           tags?: string[] | null
           title?: string
           total_marks?: number | null
@@ -907,33 +913,51 @@ export type Database = {
       }
       questions: {
         Row: {
+          correct_answer: number | null
           correct_option_index: number
           created_at: string | null
+          digits: number | null
           id: string
           image_url: string | null
+          is_auto_generated: boolean | null
           marks: number | null
+          operations: Json | null
+          operator_type: string | null
           question_bank_id: string
           question_text: string
+          rows_count: number | null
           sort_order: number | null
         }
         Insert: {
+          correct_answer?: number | null
           correct_option_index: number
           created_at?: string | null
+          digits?: number | null
           id?: string
           image_url?: string | null
+          is_auto_generated?: boolean | null
           marks?: number | null
+          operations?: Json | null
+          operator_type?: string | null
           question_bank_id: string
           question_text: string
+          rows_count?: number | null
           sort_order?: number | null
         }
         Update: {
+          correct_answer?: number | null
           correct_option_index?: number
           created_at?: string | null
+          digits?: number | null
           id?: string
           image_url?: string | null
+          is_auto_generated?: boolean | null
           marks?: number | null
+          operations?: Json | null
+          operator_type?: string | null
           question_bank_id?: string
           question_text?: string
+          rows_count?: number | null
           sort_order?: number | null
         }
         Relationships: [

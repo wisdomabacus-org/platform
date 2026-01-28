@@ -159,11 +159,8 @@ export default function QuestionBanksQuestionsPage() {
                     </DialogHeader>
                     <QuestionForm
                         initial={editingQuestion ? {
-                            text: editingQuestion.text,
-                            imageUrl: editingQuestion.imageUrl,
-                            marks: editingQuestion.marks,
-                            options: editingQuestion.options,
-                            correctOptionIndex: editingQuestion.correctOptionIndex
+                            ...editingQuestion,
+                            imageUrl: editingQuestion.imageUrl || undefined,
                         } : undefined}
                         onCancel={() => setIsFormOpen(false)}
                         onSave={editingQuestion ? handleUpdate : handleCreate}

@@ -1,194 +1,148 @@
-import { useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
+import { QuestionBank } from '../types/question-bank.types';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { MoreHorizontal, Settings, HelpCircle, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash, Eye, Copy } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from '@/shared/components/ui/dropdown-menu';
-import type { QuestionBank } from '../types/question-bank.types';
-import { Link } from 'react-router-dom';
-import { Checkbox } from '@/shared/components/ui/checkbox';
-import { useUpdateQuestionBank, useDeleteQuestionBank } from '../hooks/use-question-banks';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/config/constants';
+import { useDeleteQuestionBank } from '../hooks/use-question-banks';
 
-import { QuestionBankForm } from './forms/question-bank-form';
-import { QuestionBankFormValues } from '../types/question-bank-schema';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/shared/components/ui/dialog';
-
-const QuestionBankRowActions = ({ qb }: { qb: QuestionBank }) => {
-    const [editOpen, setEditOpen] = useState(false);
-    const { mutate: updateBank, isPending: isUpdating } = useUpdateQuestionBank();
+function ActionCell({ row }: { row: QuestionBank }) {
+    const navigate = useNavigate();
     const { mutate: deleteBank } = useDeleteQuestionBank();
 
-    const handleUpdate = (values: QuestionBankFormValues) => {
-        updateBank(
-            {
-                id: qb.id, data: {
-                    title: values.title,
-                    description: values.description,
-                    min_grade: values.minGrade,
-                    max_grade: values.maxGrade,
-                    is_active: values.isActive,
-                    tags: values.tags
-                }
-            },
-            { onSuccess: () => setEditOpen(false) }
-        );
-    };
-
     return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setEditOpen(true)} className="flex items-center gap-2 cursor-pointer">
-                        <Settings className="h-4 w-4" /> Edit Bank
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link to={`/question-banks/${qb.id}/questions`} className="flex items-center gap-2">
-                            <HelpCircle className="h-4 w-4" /> Manage Questions
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => updateBank({ id: qb.id, data: { is_active: !qb.isActive } })}
-                        className="flex items-center gap-2"
-                    >
-                        {qb.isActive ? 'Archive' : 'Activate'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={() => {
-                            if (confirm('Are you sure you want to delete this question bank? This will delete all questions within it.')) {
-                                deleteBank(qb.id);
-                            }
-                        }}
-                        className="text-destructive flex items-center gap-2"
-                    >
-                        <Trash2 className="h-4 w-4" /> Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Edit Question Bank</DialogTitle>
-                    </DialogHeader>
-                    <QuestionBankForm
-                        initial={{
-                            title: qb.title,
-                            description: qb.description || '',
-                            minGrade: qb.minGrade,
-                            maxGrade: qb.maxGrade,
-                            isActive: qb.isActive,
-                            tags: qb.tags || [],
-                        }}
-                        onCancel={() => setEditOpen(false)}
-                        onSave={handleUpdate}
-                        isLoading={isUpdating}
-                    />
-                </DialogContent>
-            </Dialog>
-        </>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate(ROUTES.QUESTION_BANKS_DETAIL.replace(':id', row.id))}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Questions
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(ROUTES.QUESTION_BANKS_EDIT.replace(':id', row.id))}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => {
+                        if (confirm('Are you sure? This action cannot be undone.')) {
+                            deleteBank(row.id);
+                        }
+                    }}
+                >
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
-};
+}
 
-export const questionBankColumns: ColumnDef<QuestionBank>[] = [
-    {
-        id: 'select',
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
+const getGradeLabel = (grade: number) => grade === 0 ? 'UKG' : `G${grade}`;
+
+export const columns: ColumnDef<QuestionBank>[] = [
     {
         accessorKey: 'title',
         header: 'Title',
-        cell: ({ row }) => (
-            <div className="flex flex-col">
-                <span className="font-medium">{row.getValue('title')}</span>
-                <span className="text-muted-foreground text-xs line-clamp-1">{row.original.description}</span>
-            </div>
-        ),
+        cell: ({ row }) => {
+            const type = row.original.bankType;
+            return (
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium">{row.getValue('title')}</span>
+                        {type === 'mock_test' && (
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                                Mock
+                            </Badge>
+                        )}
+                    </div>
+                    {row.original.description && (
+                        <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px]">
+                            {row.original.description}
+                        </span>
+                    )}
+                </div>
+            );
+        },
     },
     {
-        id: 'grade',
+        accessorKey: 'minGrade',
         header: 'Grade Range',
-        cell: ({ row }) => (
-            <span className="text-sm font-medium">
-                {row.original.minGrade} - {row.original.maxGrade}
-            </span>
-        )
+        cell: ({ row }) => {
+            const min = row.original.minGrade;
+            const max = row.original.maxGrade;
+            return (
+                <div className="flex items-center gap-1.5">
+                    <Badge variant="secondary" className="font-normal">
+                        {getGradeLabel(min)} - {getGradeLabel(max)}
+                    </Badge>
+                </div>
+            )
+        },
     },
     {
         accessorKey: 'questionsCount',
         header: 'Questions',
         cell: ({ row }) => (
-            <span className="text-sm font-mono">{row.getValue('questionsCount')}</span>
-        )
-    },
-    {
-        accessorKey: 'usageCount',
-        header: 'Usage',
-        cell: ({ row }) => (
-            <span className="text-sm">{row.getValue('usageCount')}</span>
-        )
-    },
-    {
-        accessorKey: 'isActive',
-        header: 'Status',
-        cell: ({ row }) => (
-            <Badge variant={row.getValue('isActive') ? 'default' : 'secondary'}>
-                {row.getValue('isActive') ? 'Active' : 'Archived'}
-            </Badge>
+            <div className="flex items-center gap-2">
+                <span className="font-mono text-xs">{row.getValue('questionsCount')}</span>
+            </div>
         ),
     },
     {
-        accessorKey: 'createdAt',
-        header: 'Created',
+        accessorKey: 'status',
+        header: 'Status',
         cell: ({ row }) => {
-            const date = new Date(row.getValue('createdAt'));
+            const status = row.original.status;
+            const isActive = row.original.isActive;
+
             return (
-                <span className="text-xs text-muted-foreground">
-                    {date.toLocaleDateString()}
-                </span>
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={isActive ? 'default' : 'secondary'}
+                        className={!isActive ? 'opacity-50' : ''}
+                    >
+                        {isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    {status === 'draft' && (
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">
+                            Draft
+                        </Badge>
+                    )}
+                </div>
             );
         },
     },
     {
+        accessorKey: 'updatedAt',
+        header: 'Last Updated',
+        cell: ({ row }) => (
+            <span className="text-xs text-muted-foreground">
+                {format(new Date(row.original.updatedAt), 'MMM d, yyyy')}
+            </span>
+        ),
+    },
+    {
         id: 'actions',
-        header: '',
-        enableSorting: false,
-        enableHiding: false,
-        size: 48,
-        cell: ({ row }) => <QuestionBankRowActions qb={row.original} />,
+        cell: ({ row }) => <ActionCell row={row.original} />,
     },
 ];
