@@ -24,5 +24,7 @@ export const mockUsers: User[] = Array.from({ length: 125 }).map((_, i) => {
     createdAt: new Date(Date.now() - i * 86400000),
     updatedAt: new Date(Date.now() - i * 3600000),
     enrollmentCount: i % 2 === 0 ? 2 : 1,
+    status: 'active',
+    role: 'user',
   };
 });

@@ -31,6 +31,7 @@ const schema = z.object({
   schoolName: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
+  password: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -55,6 +56,7 @@ export function UsersRegisterModal() {
       schoolName: '',
       city: '',
       state: '',
+      password: '',
     },
   });
 
@@ -100,6 +102,15 @@ export function UsersRegisterModal() {
                 <p className="text-destructive text-xs">{errors.email.message}</p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password (Optional)</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Set initial password"
+                {...register('password')}
+              />
+            </div>
           </div>
 
           {/* Parent & Student */}
@@ -141,7 +152,8 @@ export function UsersRegisterModal() {
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((g) => (
+                  <SelectItem value="0">UKG (0)</SelectItem>
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((g) => (
                     <SelectItem key={g} value={String(g)}>
                       {g}
                     </SelectItem>

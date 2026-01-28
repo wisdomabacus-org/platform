@@ -4,14 +4,19 @@ import { User, UserFilters } from '../types/user.types';
 
 export const usersService = {
     getAll: async (filters: UserFilters = {}) => {
-        const { search, authProvider, isProfileComplete, isVerified, page = 0, limit = 10 } = filters;
+        const { search, authProvider, status, isProfileComplete, isVerified, page = 0, limit = 10 } = filters;
 
         let query = supabase
             .from('profiles')
-            .select('*', { count: 'exact' });
+            .select('*', { count: 'exact' })
+            .neq('role', 'admin'); // EXCLUDE ADMINS
 
         if (authProvider) {
             query = query.eq('auth_provider', authProvider);
+        }
+
+        if (status) {
+            query = query.eq('status', status);
         }
 
         if (isProfileComplete !== undefined) {
@@ -48,6 +53,8 @@ export const usersService = {
                 parentName: profile.parent_name,
                 studentGrade: profile.student_grade,
                 schoolName: profile.school_name,
+                status: profile.status || 'active',
+                role: profile.role || 'user',
                 city: profile.city,
                 state: profile.state,
                 isProfileComplete: profile.is_profile_complete || false,
@@ -126,5 +133,27 @@ export const usersService = {
         console.log("Mock bulk create:", users);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return { success: true, count: users.length };
+    },
+
+    updateStatus: async (id: string, status: 'active' | 'suspended') => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ status } as any)
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    },
+
+    // NOTE: This only deletes the profile. Auth user deletion requires Edge Function or Admin API.
+    // For now assuming profile delete triggers cascade or is sufficient for view hiding if we fail on auth delete.
+    deleteUser: async (id: string) => {
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
     }
 };

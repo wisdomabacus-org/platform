@@ -15,6 +15,57 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { User } from '../types/user.types';
 import { ROUTES } from '@/config/constants';
+import { useUpdateUserStatus, useDeleteUser } from '../hooks/use-users';
+
+const UserActions = ({ user }: { user: User }) => {
+  const { mutate: updateStatus } = useUpdateUserStatus();
+  const { mutate: deleteUser } = useDeleteUser();
+
+  const isSuspended = user.status === 'suspended';
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link to={ROUTES.USERS_DETAIL.replace(':id', user.id)}>View Details</Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {isSuspended ? (
+          <DropdownMenuItem onClick={() => updateStatus({ id: user.id, status: 'active' })}>
+            Activate User
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => updateStatus({ id: user.id, status: 'suspended' })} className="text-orange-600 focus:text-orange-600">
+            Suspend User
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          disabled={!isSuspended}
+          onClick={() => {
+            if (confirm('Are you sure? This action is irreversible.')) {
+              deleteUser(user.id);
+            }
+          }}
+        >
+          {isSuspended ? 'Delete User' : 'Suspend to Delete'}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -92,6 +143,15 @@ export const userColumns: ColumnDef<User>[] = [
     cell: ({ row }) => row.original.lastLogin ? new Date(row.original.lastLogin).toLocaleDateString() : '—',
   },
   {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => (
+      <Badge variant={row.original.status === 'suspended' ? 'destructive' : 'outline'}>
+        {row.original.status || 'Active'}
+      </Badge>
+    ),
+  },
+  {
     accessorKey: 'createdAt',
     header: 'Joined',
     cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
@@ -102,29 +162,6 @@ export const userColumns: ColumnDef<User>[] = [
     enableSorting: false,
     enableHiding: false,
     size: 48,
-    cell: ({ row }) => {
-      const u = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link to={ROUTES.USERS_DETAIL.replace(':id', u.id)}>View Details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {/* Delete or Ban placeholder */}
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
-              Delete User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
+    cell: ({ row }) => <UserActions user={row.original} />,
   },
 ];

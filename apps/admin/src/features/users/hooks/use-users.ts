@@ -42,3 +42,31 @@ export function useBulkCreateUsers() {
         }
     });
 }
+
+export function useUpdateUserStatus() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string; status: 'active' | 'suspended' }) => usersService.updateStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.USERS] });
+            toast.success('User status updated');
+        },
+        onError: (error) => {
+            toast.error(`Failed to update status: ${error.message}`);
+        }
+    });
+}
+
+export function useDeleteUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => usersService.deleteUser(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.USERS] });
+            toast.success('User deleted successfully');
+        },
+        onError: (error) => {
+            toast.error(`Failed to delete user: ${error.message}`);
+        }
+    });
+}

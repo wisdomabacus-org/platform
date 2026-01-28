@@ -19,11 +19,11 @@ function generateNumber(digits: number): number {
     return getRandomInt(min, max);
 }
 
-export function generateOptions(correctAnswer: number, _randomness: number = 20): QuestionOption[] {
+export function generateOptions(correctAnswer: number, randomness: number = 50): QuestionOption[] {
     // Generate 3 distractors
     const options: number[] = [correctAnswer];
-    // Simple heuristic: range is roughly +/- 50% of the answer, or at least 10 for small numbers
-    const range = Math.max(10, Math.abs(correctAnswer * 0.5));
+    // Simple heuristic: range is roughly +/- randomness% of the answer, or at least 10 for small numbers
+    const range = Math.max(10, Math.abs(correctAnswer * (randomness / 100)));
 
     while (options.length < 4) {
         // Generate a random offset

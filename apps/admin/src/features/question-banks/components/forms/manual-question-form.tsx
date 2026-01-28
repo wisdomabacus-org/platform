@@ -89,7 +89,7 @@ export function ManualQuestionForm({ onSave, onCancel }: Props) {
             setOperands(operands.slice(0, 2));
             if (operands.length < 2) setOperands(prev => [...prev, '0']);
         }
-    }, [operator]);
+    }, [operator, isMathOp, operands]);
 
     return (
         <div className="space-y-4 py-2">

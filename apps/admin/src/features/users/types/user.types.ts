@@ -10,8 +10,10 @@ export interface User {
   emailVerified: boolean;
   studentName: string | null;
   parentName: string | null;
-  studentGrade: number | null;
+  studentGrade: number | null; // 0=UKG, 1-8
   schoolName: string | null;
+  status: 'active' | 'suspended';
+  role: 'user' | 'admin';
   city: string | null;
   state: string | null;
   isProfileComplete: boolean;
@@ -27,6 +29,7 @@ export interface User {
 export interface UserFilters {
   search?: string;
   authProvider?: string;
+  status?: 'active' | 'suspended';
   isProfileComplete?: boolean;
   isVerified?: boolean;
   page?: number;
