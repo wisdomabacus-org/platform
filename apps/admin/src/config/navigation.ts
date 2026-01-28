@@ -8,7 +8,6 @@ import {
     Award,
     FileText,
     Inbox,
-    Settings,
     UserPlus,
     Tv,
     BookOpen
@@ -109,16 +108,6 @@ export const navigationGroups: NavGroup[] = [
                 title: 'Requests',
                 url: ROUTES.REQUESTS,
                 icon: Inbox,
-            },
-        ],
-    },
-    {
-        label: 'Admin',
-        items: [
-            {
-                title: 'Settings',
-                url: ROUTES.SETTINGS,
-                icon: Settings,
             },
         ],
     },

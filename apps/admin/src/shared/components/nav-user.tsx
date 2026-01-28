@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut } from 'lucide-react';
+import { ChevronsUpDown, LogOut, Settings, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import {
   DropdownMenu,
@@ -80,6 +80,29 @@ export function NavUser({ user }: NavUserProps) {
             <div className="border-t border-white/20" />
 
             {/* Single logout action */}
+            <button
+              type="button"
+              onClick={() => logout()}
+              disabled={isPending}
+              className="
+                group flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm
+                transition-colors hover:bg-white/10
+              "
+            >
+              <Sparkles className="h-4 w-4 text-muted-foreground mr-2" />
+              Upgrade to Pro
+            </button>
+            <button
+              type="button"
+              className="
+                group flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm
+                transition-colors hover:bg-white/10
+              "
+            >
+              <Settings className="h-4 w-4 text-muted-foreground mr-2" />
+              Account Settings
+            </button>
+            <div className="border-t border-white/20" />
             <button
               type="button"
               onClick={() => logout()}

@@ -1,7 +1,7 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/shared/components/protected-route';
-import { AppShell } from '@/shared/components/app-shell';
+import { AuthenticatedLayout } from '@/shared/components/layout/authenticated-layout';
 import { LoginPage } from '@/features/auth/pages/login-page';
 import { ROUTES } from '@/config/constants';
 
@@ -43,7 +43,7 @@ export function AppRoutes() {
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
+        <Route element={<AuthenticatedLayout />}>
           <Route
             path={ROUTES.HOME}
             element={<Navigate to={ROUTES.DASHBOARD} replace />}
