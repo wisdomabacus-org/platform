@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useReferrers, useCreateReferrer } from '../hooks/use-referrals';
 import { DataTable } from '@/shared/components/data-table/DataTable';
 import { referrerColumns } from '../components/columns';
-import { CreateReferrerModal } from '../components/create-referrer-modal';
+import { ReferrerFormModal } from '../components/create-referrer-modal';
 import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 
@@ -36,7 +36,7 @@ export default function ReferralsPage() {
                     <p className="text-muted-foreground">Manage referral partners and track performance.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <CreateReferrerModal onConfirm={createReferrer} />
+                    <ReferrerFormModal onConfirm={createReferrer} />
                 </div>
             </div>
 

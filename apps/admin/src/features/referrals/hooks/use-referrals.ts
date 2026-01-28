@@ -17,8 +17,39 @@ export function useCreateReferrer() {
     return useMutation({
         mutationFn: referralsService.create,
         onSuccess: () => {
-            toast.success('Referrer created (Mock)');
+            toast.success('Referrer created successfully');
             queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        },
+        onError: (error) => {
+            toast.error(`Failed to create referrer: ${error.message}`);
+        }
+    });
+}
+
+export function useUpdateReferrer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: referralsService.update,
+        onSuccess: () => {
+            toast.success('Referrer updated successfully');
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        },
+        onError: (error) => {
+            toast.error(`Failed to update referrer: ${error.message}`);
+        }
+    });
+}
+
+export function useDeleteReferrer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: referralsService.delete,
+        onSuccess: () => {
+            toast.success('Referrer deleted successfully');
+            queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        },
+        onError: (error) => {
+            toast.error(`Failed to delete referrer: ${error.message}`);
         }
     });
 }
