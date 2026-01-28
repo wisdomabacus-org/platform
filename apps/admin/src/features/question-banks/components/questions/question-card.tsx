@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function QuestionCard({ question, index, onDelete }: Props) {
-    const isMathOp = ['multiplication', 'division'].includes(question.operatorType);
+
 
     return (
         <Card className="group relative flex flex-col overflow-hidden border-muted transition-all hover:border-primary/20 hover:shadow-md">
@@ -40,32 +40,43 @@ export function QuestionCard({ question, index, onDelete }: Props) {
             {/* Content: Operation Display */}
             <div className="flex flex-1 flex-col items-center justify-center p-5 min-h-[140px]">
                 <div className={cn(
-                    "flex flex-col items-end font-mono font-bold tracking-widest text-foreground",
-                    question.operations.length > 5 ? "text-lg" : "text-xl",
-                    isMathOp ? "flex-row gap-3 items-center" : ""
+                    "flex flex-col items-end font-mono font-bold tracking-widest text-foreground text-xl",
                 )}>
-                    {isMathOp ? (
-                        <>
-                            <span>{question.operations[0]}</span>
-                            <span className="text-muted-foreground">{question.operatorType === 'multiplication' ? '×' : '÷'}</span>
-                            <span>{question.operations[1]}</span>
-                        </>
-                    ) : (
-                        // Vertical Stack for Abacus (Addition/Subtraction)
-                        question.operations.map((num, idx) => {
-                            const isNegative = num < 0;
-                            const val = Math.abs(num);
-                            return (
-                                <div key={idx} className="relative flex items-center justify-end w-full">
-                                    {isNegative && <span className="absolute -left-4 text-muted-foreground font-normal">-</span>}
-                                    <span>{val}</span>
-                                </div>
-                            );
-                        })
-                    )}
+                    {question.operations.map((num, idx) => {
+                        const isLast = idx === question.operations.length - 1;
+                        let operatorSymbol = '';
+
+                        // Determine prefix symbol for the last row in specific cases
+                        if (isLast) {
+                            if (question.operatorType === 'multiplication') operatorSymbol = '×';
+                            else if (question.operatorType === 'division') operatorSymbol = '÷';
+                            // For Mixed/Add/Sub, we usually rely on signs, but could add '+' if strictly positive and not first?
+                            // Abacus usually just shows signed numbers.
+                        }
+
+                        // For Abacus (Add/Sub), negative numbers have '-'
+                        const isNegative = num < 0;
+                        const val = Math.abs(num);
+
+                        return (
+                            <div key={idx} className="relative flex items-center justify-end w-full gap-2">
+                                {/* Operator for Math Ops (Multiplication/Division) on last row */}
+                                {operatorSymbol && (
+                                    <span className="absolute -left-6 text-muted-foreground font-normal">{operatorSymbol}</span>
+                                )}
+
+                                {/* Sign for Abacus/Mixed operations */}
+                                {!operatorSymbol && isNegative && (
+                                    <span className="absolute -left-4 text-muted-foreground font-normal">-</span>
+                                )}
+
+                                <span>{val}</span>
+                            </div>
+                        );
+                    })}
 
                     {/* Divider & Answer */}
-                    <div className="mt-2 w-12 border-t-2 border-primary/20" />
+                    <div className="mt-2 w-full border-t-2 border-primary/20" />
                     <div className="mt-1 text-emerald-600 dark:text-emerald-400">
                         {question.correctAnswer}
                     </div>

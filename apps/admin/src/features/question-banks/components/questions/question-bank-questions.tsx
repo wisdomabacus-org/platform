@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuestions, useBulkCreateQuestions, useDeleteQuestion } from '../../hooks/use-question-banks';
+import { useQuestions, useBulkCreateQuestions, useDeleteQuestion, useCreateQuestion } from '../../hooks/use-question-banks';
 import { QuestionCard } from './question-card';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -12,12 +12,16 @@ import { generateBatchQuestions } from '../../utils/question-generator';
 import { OperatorType, Question } from '../../types/question-bank.types';
 import { toast } from 'sonner';
 import { Separator } from '@/shared/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
+import { ManualQuestionForm } from '../forms/manual-question-form';
 
 export function QuestionBankQuestions({ bankId }: { bankId: string }) {
     const { data: questions, isLoading } = useQuestions(bankId);
     const { mutate: bulkCreate, isPending: isGenerating } = useBulkCreateQuestions();
+    const { mutate: createQuestion } = useCreateQuestion();
     const { mutate: deleteQuestion } = useDeleteQuestion();
-    // Manual create hook could be added here for the manual tab
+
+    const [isManualOpen, setIsManualOpen] = useState(false);
 
     // Generation State
     const [genConfig, setGenConfig] = useState({
@@ -30,9 +34,9 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
 
     const handleGenerate = () => {
         const generated = generateBatchQuestions({
-            count: genConfig.count,
+            count: genConfig.count || 10,
             digits: genConfig.digits,
-            rows: genConfig.rows,
+            rows: genConfig.rows || 3,
             operators: genConfig.operator === 'mixed' ? ['addition', 'subtraction'] : [genConfig.operator],
             allowNegative: genConfig.allowNegative,
         });
@@ -44,10 +48,36 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
         });
     };
 
+    const handleManualSave = (question: Partial<Question>) => {
+        createQuestion({ bankId, ...question } as any, {
+            onSuccess: () => {
+                toast.success('Question added successfully');
+                setIsManualOpen(false);
+            }
+        });
+    };
+
+    // Helper for number inputs to allow clearing
+    const handleNumInput = (val: string, field: 'count' | 'rows') => {
+        if (val === '') {
+            // We need to cast to any or allow undefined to handle empty state temporarily, 
+            // but simpler is to just keep it as 0 or handle it in UI value.
+            // Actually, let's just cheat and store it in state as string or number? 
+            // Ideally we refactor state to allow partial.
+            // For now, let's just parse. If NaN, default to 0 (which renders as 0).
+            // To allow empty, we'd need a separate string state or allow null.
+            // Let's rely on standard forgiving parse:
+            setGenConfig({ ...genConfig, [field]: 0 });
+        } else {
+            const parsed = parseInt(val);
+            if (!isNaN(parsed)) setGenConfig({ ...genConfig, [field]: parsed });
+        }
+    };
+
     return (
         <div className="flex h-full">
             {/* Main Content: Questions Grid */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 {isLoading ? (
                     <div className="flex h-full items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -61,7 +91,7 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20">
                         {questions?.map((q: Question, idx: number) => (
                             <QuestionCard
                                 key={q.id}
@@ -77,14 +107,14 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
             </div>
 
             {/* Sidebar: Configuration */}
-            <div className="w-80 border-l bg-background p-4">
+            <div className="w-80 border-l bg-background p-4 flex flex-col gap-4">
                 <Tabs defaultValue="generate" className="w-full">
-                    <TabsList className="w-full">
-                        <TabsTrigger value="generate" className="flex-1">Generate</TabsTrigger>
-                        <TabsTrigger value="manual" className="flex-1">Manual</TabsTrigger>
+                    <TabsList className="w-full grid grid-cols-2">
+                        <TabsTrigger value="generate">Generate</TabsTrigger>
+                        <TabsTrigger value="manual">Manual</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="generate" className="space-y-6 pt-4">
+                    <TabsContent value="generate" className="space-y-6 pt-4 h-[calc(100vh-12rem)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Number of Questions</Label>
@@ -92,8 +122,8 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    value={genConfig.count}
-                                    onChange={e => setGenConfig({ ...genConfig, count: parseInt(e.target.value) || 10 })}
+                                    value={genConfig.count || ''}
+                                    onChange={e => handleNumInput(e.target.value, 'count')}
                                 />
                             </div>
 
@@ -125,8 +155,8 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
                                         type="number"
                                         min={2}
                                         max={15}
-                                        value={genConfig.rows}
-                                        onChange={e => setGenConfig({ ...genConfig, rows: parseInt(e.target.value) || 3 })}
+                                        value={genConfig.rows || ''}
+                                        onChange={e => handleNumInput(e.target.value, 'rows')}
                                     />
                                     <p className="text-[10px] text-muted-foreground">How many numbers to calculate</p>
                                 </div>
@@ -175,11 +205,25 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
                     <TabsContent value="manual" className="pt-4 text-center">
                         <div className="rounded-md border border-dashed p-8">
                             <p className="text-sm text-muted-foreground">
-                                Manual question creation with full control over numbers and options coming soon.
+                                Complete control over numbers and answer.
                             </p>
-                            <Button variant="outline" size="sm" className="mt-4 gap-2">
-                                <Plus className="h-4 w-4" /> Add One
-                            </Button>
+
+                            <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="mt-4 gap-2">
+                                        <Plus className="h-4 w-4" /> Add One
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Add Manual Question</DialogTitle>
+                                    </DialogHeader>
+                                    <ManualQuestionForm
+                                        onSave={handleManualSave}
+                                        onCancel={() => setIsManualOpen(false)}
+                                    />
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </TabsContent>
                 </Tabs>

@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuestionBank } from '../hooks/use-question-banks';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { QuestionBankQuestions } from '../components/questions/question-bank-questions';
 import { Skeleton } from '@/shared/components/ui/skeleton';
@@ -36,11 +36,17 @@ export default function QuestionBankManagePage() {
                     <ArrowLeft className="h-4 w-4" />
                     Back to Overview
                 </Button>
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight">Manage Questions</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Add, edit, or generate questions for <span className="font-medium text-foreground">{bank.title}</span>
-                    </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight">Manage Questions</h1>
+                        <p className="text-sm text-muted-foreground">
+                            Add, edit, or generate questions for <span className="font-medium text-foreground">{bank.title}</span>
+                        </p>
+                    </div>
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <Upload className="h-4 w-4" />
+                        Import CSV
+                    </Button>
                 </div>
             </div>
 

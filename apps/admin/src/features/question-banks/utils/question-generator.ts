@@ -19,14 +19,15 @@ function generateNumber(digits: number): number {
     return getRandomInt(min, max);
 }
 
-function generateOptions(correctAnswer: number): QuestionOption[] {
+export function generateOptions(correctAnswer: number, _randomness: number = 20): QuestionOption[] {
     // Generate 3 distractors
     const options: number[] = [correctAnswer];
+    // Simple heuristic: range is roughly +/- 50% of the answer, or at least 10 for small numbers
     const range = Math.max(10, Math.abs(correctAnswer * 0.5));
 
     while (options.length < 4) {
         // Generate a random offset
-        const offset = getRandomInt(1, range);
+        const offset = getRandomInt(1, Math.round(range));
         const sign = Math.random() > 0.5 ? 1 : -1;
         const distractor = correctAnswer + (offset * sign);
 
