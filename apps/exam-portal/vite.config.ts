@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, "../../dist/exam-portal"),
+    outDir: "dist",
     emptyOutDir: true,
     sourcemap: false,
   },
