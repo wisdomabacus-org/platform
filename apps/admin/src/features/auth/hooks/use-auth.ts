@@ -69,9 +69,7 @@ export function useAdminProfile() {
     retry: false,
     enabled: false,
     throwOnError: (error: any) => {
-      // Supabase auth errors usually don't have status 401 in the same way axios does, 
-      // but if we fail to get session, clearAuth is good.
-      // However, we can just let it fail and handle in UI or useEffect.
+      // If we fail to get session, clear auth
       if (error?.message?.includes('No session') || error?.code === '401') {
         clearAuth();
       }

@@ -27,7 +27,6 @@ export function useUpdateProfile() {
             console.log("Mutation error:", error); // Debug log
 
             // Check if it's a validation error (400)
-            // The axios interceptor extracts the error, so status is directly on error object
             const errorCode = error?.status;
 
             // Only show toast for non-validation errors (500, network errors, etc.)
