@@ -6,12 +6,14 @@ export const enrollmentsService = {
     getAll: async (filters: EnrollmentFilters = {}) => {
         const { competitionId, status, isPaymentConfirmed, page = 0, limit = 10 } = filters;
 
+        // Use explicit FK references for joins
+        // profiles via user_id, competitions via competition_id
         let query = supabase
             .from('enrollments')
             .select(`
                 *,
-                profile:profiles(student_name, phone, uid),
-                competition:competitions(title, season)
+                profiles!user_id(student_name, phone, uid),
+                competitions!competition_id(title, season)
             `, { count: 'exact' });
 
         if (competitionId) {
@@ -39,11 +41,13 @@ export const enrollmentsService = {
             data: (data || []).map((e: any) => ({
                 id: e.id,
                 userId: e.user_id,
-                userName: e.profile?.student_name || '—',
-                userPhone: e.profile?.phone || '—',
+                // Use 'profiles' (table name) since we use explicit FK reference without alias
+                userName: e.profiles?.student_name || '—',
+                userPhone: e.profiles?.phone || '—',
                 competitionId: e.competition_id,
-                competitionTitle: e.competition?.title || 'Unknown',
-                competitionSeason: e.competition?.season || '',
+                // Use 'competitions' (table name) since we use explicit FK reference without alias
+                competitionTitle: e.competitions?.title || 'Unknown',
+                competitionSeason: e.competitions?.season || '',
                 status: e.status,
                 paymentId: e.payment_id,
                 isPaymentConfirmed: e.is_payment_confirmed || false,

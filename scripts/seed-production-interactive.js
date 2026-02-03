@@ -146,33 +146,46 @@ async function main() {
             const customPassword = generatePassword(studentName, phone);
 
             // Create/Get Auth User
+            // IMPORTANT: Do NOT set phone on auth.users - phone is NOT unique
+            // Multiple siblings can share the same parent phone number
+            // Each student is uniquely identified by email only
             let userId;
-            // Note: Admin create is atomic. If it fails due to duplicate, we fetch.
             const { data: authData, error: createError } = await supabase.auth.admin.createUser({
                 email: email,
                 password: customPassword,
                 email_confirm: true,
-                phone: phone ? String(phone) : undefined,
-                phone_confirm: true,
+                // DO NOT pass phone to auth.users - it would create unique constraint issue
+                // Phone will be stored in profiles table (which now allows duplicates)
                 user_metadata: { full_name: studentName, imported: true }
             });
 
             if (createError) {
-                // If user exists, find their ID
-                // Warning: We CANNOT recover their password if they already exist.
-                // We just skip adding them to the credentials list (safest).
-                // OR we can reset it using updateUserById if you really want to force it.
-                const { data: { users } } = await supabase.auth.admin.listUsers();
-                const existing = users.find(u => normalizeEmail(u.email) === email);
-                if (existing) userId = existing.id;
-                else console.error(`   ⚠️ Auth Error: ${createError.message}`);
+                // If user exists (duplicate email), find their ID
+                if (createError.message.includes('already been registered') ||
+                    createError.message.includes('already exists') ||
+                    createError.code === 'email_exists') {
+                    const { data: { users } } = await supabase.auth.admin.listUsers();
+                    const existing = users.find(u => normalizeEmail(u.email) === email);
+                    if (existing) {
+                        userId = existing.id;
+                        // User already exists, we can still process their payment/enrollment
+                    } else {
+                        console.error(`\n   ⚠️ Could not find existing user for: ${email}`);
+                    }
+                } else {
+                    // Unexpected error - log it
+                    console.error(`\n   ❌ Auth Error for ${email}: ${createError.message}`);
+                }
             } else {
                 userId = authData.user.id;
                 // Only push to credentials CSV if it's a NEW account with a KNOWN password
-                credentialsList.push({ email, password: customPassword, name: studentName });
+                credentialsList.push({ email, password: customPassword, name: studentName, phone: phone });
             }
 
-            if (!userId) continue;
+            if (!userId) {
+                console.error(`\n   ⚠️ Skipping payment ${payment.id} - no user ID for: ${email}`);
+                continue;
+            }
 
             // Upsert Profile
             await supabase.from('profiles').upsert({

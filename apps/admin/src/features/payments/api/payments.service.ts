@@ -5,15 +5,17 @@ export const paymentsService = {
     getAll: async (filters: PaymentFilters = {}) => {
         const { status, search, dateRange, page = 0, limit = 10 } = filters;
 
+        // Use explicit FK reference for join: profiles via user_id
         let query = supabase
             .from('payments')
             .select(`
                 *,
-                profile:profiles(student_name, phone, email)
+                profiles!user_id(student_name, phone, email)
             `, { count: 'exact' });
 
         if (status) {
-            query = query.eq('status', status);
+            // Database uses UPPERCASE status values: SUCCESS, PENDING, FAILED
+            query = query.eq('status', status.toUpperCase());
         }
 
         if (search) {
@@ -41,11 +43,14 @@ export const paymentsService = {
             data: (data || []).map((p: any) => ({
                 id: p.id,
                 userId: p.user_id,
-                userName: p.profile?.student_name || '—',
-                userPhone: p.profile?.phone || '—',
-                amount: p.amount,
+                // Use 'profiles' (table name) since we use explicit FK reference without alias
+                userName: p.profiles?.student_name || '—',
+                userPhone: p.profiles?.phone || '—',
+                // Amount is stored in paise, convert to rupees for display
+                amount: (p.amount || 0) / 100,
                 currency: p.currency || 'INR',
-                status: p.status,
+                // Normalize status to lowercase for frontend display
+                status: (p.status || 'pending').toLowerCase(),
                 purpose: p.purpose,
                 referenceId: p.reference_id,
                 gateway: p.gateway,
@@ -69,22 +74,22 @@ export const paymentsService = {
         // We'll Fetch counts for each status
         // Note: 'count' method with 'head: true' is efficient.
 
-        // Total Revenue (only success)
-        // Supabase JS doesn't do SUM easily without RPC.
-        // We'll mock the SUM logic or fetch 'amount' column for 'success' rows.
-
+        // Total Revenue (only SUCCESS payments)
+        // Database uses UPPERCASE status values: SUCCESS, PENDING, FAILED
         const { data: successData, error: successError } = await supabase
             .from('payments')
             .select('amount')
-            .eq('status', 'success');
+            .eq('status', 'SUCCESS');
 
         if (successError) throw successError;
 
-        const totalRevenue = successData.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        // Amount is in paise, convert to rupees
+        const totalRevenue = successData.reduce((acc, curr) => acc + (curr.amount || 0), 0) / 100;
         const successfulCount = successData.length;
 
-        const { count: pendingCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-        const { count: failedCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'failed');
+        // Database uses UPPERCASE status values
+        const { count: pendingCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
+        const { count: failedCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'FAILED');
 
         return {
             totalRevenue,

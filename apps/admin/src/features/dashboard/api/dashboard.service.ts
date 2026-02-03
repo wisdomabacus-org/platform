@@ -4,10 +4,11 @@ import { DashboardData, ActivityItem } from '../types/dashboard.types';
 
 export const dashboardService = {
     getDashboardData: async (): Promise<DashboardData> => {
-        // 1. Fetch Total Users
+        // 1. Fetch Total Users (EXCLUDE ADMIN USERS - only count students/regular users)
         const { count: totalUsers } = await supabase
             .from('profiles')
-            .select('*', { count: 'exact', head: true });
+            .select('*', { count: 'exact', head: true })
+            .neq('role', 'admin'); // Exclude admin users from count
 
         // 2. Fetch Active Competitions
         // Assuming 'open' or 'live' status means active
@@ -16,17 +17,15 @@ export const dashboardService = {
             .select('*', { count: 'exact', head: true })
             .in('status', ['open', 'live', 'published']);
 
-        // 3. Fetch Total Revenue (This Month)
-        const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
+        // 3. Fetch Total Revenue (ALL TIME - successful payments)
+        // Removed month filter to show all-time revenue
         const { data: payments } = await supabase
             .from('payments')
             .select('amount')
-            .eq('status', 'SUCCESS')
-            .gte('created_at', firstDayOfMonth);
+            .eq('status', 'SUCCESS');
 
-        const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+        // Amount is stored in paise, convert to rupees
+        const totalRevenue = (payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0) / 100;
 
         // 4. Fetch Pending Demo Requests
         const { count: pendingDemoRequests } = await supabase
@@ -34,24 +33,25 @@ export const dashboardService = {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pending');
 
-        // 5. Fetch Recent Activity (Enrollments integration)
+        // 5. Fetch Recent Activity (Enrollments with explicit FK references)
         const { data: recentEnrollments } = await supabase
             .from('enrollments')
             .select(`
-        id,
-        created_at,
-        status,
-        user:profiles(student_name),
-        competition:competitions(title)
-      `)
+                id,
+                created_at,
+                status,
+                profiles!user_id(student_name),
+                competitions!competition_id(title)
+            `)
             .order('created_at', { ascending: false })
             .limit(5);
 
         const activities: ActivityItem[] = (recentEnrollments || []).map((e: any) => ({
             id: e.id,
             type: 'enrollment',
-            title: `Enrolled in ${e.competition?.title || 'Competition'}`,
-            user: e.user?.student_name || 'Unknown User',
+            // Use table names since we use explicit FK references without aliases
+            title: `Enrolled in ${e.competitions?.title || 'Competition'}`,
+            user: e.profiles?.student_name || 'Unknown User',
             timestamp: e.created_at,
             status: e.status,
         }));

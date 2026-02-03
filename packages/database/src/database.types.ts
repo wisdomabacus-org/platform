@@ -770,8 +770,10 @@ export type Database = {
           referral_source: string | null
           referred_by_code: string | null
           registration_source: string | null
+          role: string | null
           school_name: string | null
           state: string | null
+          status: string | null
           student_grade: number | null
           student_name: string | null
           uid: string
@@ -792,8 +794,10 @@ export type Database = {
           referral_source?: string | null
           referred_by_code?: string | null
           registration_source?: string | null
+          role?: string | null
           school_name?: string | null
           state?: string | null
+          status?: string | null
           student_grade?: number | null
           student_name?: string | null
           uid: string
@@ -814,8 +818,10 @@ export type Database = {
           referral_source?: string | null
           referred_by_code?: string | null
           registration_source?: string | null
+          role?: string | null
           school_name?: string | null
           state?: string | null
+          status?: string | null
           student_grade?: number | null
           student_name?: string | null
           uid?: string
@@ -927,6 +933,7 @@ export type Database = {
           question_text: string
           rows_count: number | null
           sort_order: number | null
+          type: string | null
         }
         Insert: {
           correct_answer?: number | null
@@ -943,6 +950,7 @@ export type Database = {
           question_text: string
           rows_count?: number | null
           sort_order?: number | null
+          type?: string | null
         }
         Update: {
           correct_answer?: number | null
@@ -959,6 +967,7 @@ export type Database = {
           question_text?: string
           rows_count?: number | null
           sort_order?: number | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -1023,6 +1032,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referrers: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       submission_answers: {
         Row: {

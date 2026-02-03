@@ -96,7 +96,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No competitions found.
+                  No results found.
                 </TableCell>
               </TableRow>
             )}

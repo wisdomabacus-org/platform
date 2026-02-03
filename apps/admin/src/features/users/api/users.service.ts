@@ -6,10 +6,12 @@ export const usersService = {
     getAll: async (filters: UserFilters = {}) => {
         const { search, authProvider, status, isProfileComplete, isVerified, page = 0, limit = 10 } = filters;
 
+        // Note: profiles table contains all users including admins.
+        // We filter out admin users to only show students/regular users.
         let query = supabase
             .from('profiles')
             .select('*', { count: 'exact' })
-            .neq('role', 'admin'); // EXCLUDE ADMINS
+            .neq('role', 'admin'); // Exclude admin users
 
         if (authProvider) {
             query = query.eq('auth_provider', authProvider);
