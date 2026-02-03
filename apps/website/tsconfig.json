@@ -34,7 +34,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "**/*.mts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "/home/pegasus-m24/PegasusWorkSpace/wisdom-abacus/platform/dist/website/types/**/*.ts",
+    "/home/pegasus-m24/PegasusWorkSpace/wisdom-abacus/platform/dist/website/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
