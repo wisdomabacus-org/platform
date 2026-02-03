@@ -15,6 +15,18 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
         outline: "text-foreground",
+        // Status variants with pastel colors
+        success:
+          "border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        warning:
+          "border-transparent bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        info:
+          "border-transparent bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        error:
+          "border-transparent bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+        // Muted variants
+        muted:
+          "border-transparent bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
       },
     },
     defaultVariants: {
@@ -25,7 +37,7 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  VariantProps<typeof badgeVariants> { }
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
