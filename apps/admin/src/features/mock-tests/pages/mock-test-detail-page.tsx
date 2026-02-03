@@ -307,10 +307,10 @@ export default function MockTestDetailPage() {
                                 variant="outline"
                                 size="sm"
                                 className="gap-1.5"
-                                onClick={() => navigate(ROUTES.MOCK_TESTS_QUESTIONS.replace(':id', id!))}
+                                onClick={() => navigate(ROUTES.QUESTION_BANKS)}
                             >
                                 <FileQuestion className="h-3.5 w-3.5" />
-                                Manage Questions
+                                Assign Question Banks
                             </Button>
                             <Button variant="outline" size="sm" className="gap-1.5">
                                 <Users className="h-3.5 w-3.5" />
@@ -325,45 +325,73 @@ export default function MockTestDetailPage() {
                 </TabsContent>
 
                 <TabsContent value="participants" className="mt-4">
-                    <div className="flex flex-col items-center justify-center rounded-md border py-14 text-center">
-                        <Users className="h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="mt-3 text-base font-semibold">Participant Attempts</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            View students who have attempted this mock test.
-                        </p>
-                        <Button variant="outline" size="sm" className="mt-4">
-                            Coming Soon
-                        </Button>
+                    <div className="rounded-md border p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-base font-semibold">Test Attempts</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {mockTest.attempt_count || 0} students have attempted this mock test
+                                </p>
+                            </div>
+                        </div>
+                        {(mockTest.attempt_count || 0) === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 text-center">
+                                <Users className="h-10 w-10 text-muted-foreground/30" />
+                                <p className="mt-3 text-sm text-muted-foreground">No attempts yet</p>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-4">
+                                <p>Detailed attempt history will be available here.</p>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="questions" className="mt-4">
-                    <div className="flex flex-col items-center justify-center rounded-md border py-14 text-center">
-                        <FileQuestion className="h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="mt-3 text-base font-semibold">Question Management</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Assign question banks and manage test questions.
-                        </p>
-                        <Button
-                            size="sm"
-                            className="mt-4"
-                            onClick={() => navigate(ROUTES.MOCK_TESTS_QUESTIONS.replace(':id', id!))}
-                        >
-                            Manage Questions
-                        </Button>
+                    <div className="rounded-md border p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-base font-semibold">Question Banks</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Assign pre-built question banks to this mock test
+                                </p>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => navigate(ROUTES.QUESTION_BANKS)}
+                            >
+                                Assign Question Banks
+                            </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-4">
+                            <p><strong>How it works:</strong></p>
+                            <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Go to Question Banks to create or select existing banks</li>
+                                <li>Question banks contain pre-generated abacus questions by grade level</li>
+                                <li>Link question banks to this mock test</li>
+                            </ul>
+                        </div>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="analytics" className="mt-4">
-                    <div className="flex flex-col items-center justify-center rounded-md border py-14 text-center">
-                        <BarChart3 className="h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="mt-3 text-base font-semibold">Test Analytics</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            View performance metrics and completion rates.
-                        </p>
-                        <Button variant="outline" size="sm" className="mt-4">
-                            Coming Soon
-                        </Button>
+                    <div className="rounded-md border p-4">
+                        <h3 className="text-base font-semibold mb-4">Test Analytics</h3>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="bg-muted/50 rounded-md p-4 text-center">
+                                <p className="text-2xl font-bold text-primary">{mockTest.attempt_count || 0}</p>
+                                <p className="text-xs text-muted-foreground">Total Attempts</p>
+                            </div>
+                            <div className="bg-muted/50 rounded-md p-4 text-center">
+                                <p className="text-2xl font-bold text-emerald-600">{mockTest.total_questions || 0}</p>
+                                <p className="text-xs text-muted-foreground">Questions</p>
+                            </div>
+                            <div className="bg-muted/50 rounded-md p-4 text-center">
+                                <p className="text-2xl font-bold text-orange-600">{mockTest.duration || 0}m</p>
+                                <p className="text-xs text-muted-foreground">Duration</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-4">Detailed analytics (completion rates, average scores) will be available once students start attempting the test.</p>
                     </div>
                 </TabsContent>
             </Tabs>
