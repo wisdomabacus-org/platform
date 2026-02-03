@@ -39,23 +39,36 @@ const generateQuestions = (config: WorksheetConfig): Question[] => {
             for (let r = 0; r < config.rows; r++) {
                 let num = generateRandomNumber(config.digits);
 
-                // Handle mixed operators or dedicated subtraction
+                // First number logic: always positive and sets the initial sum
+                if (r === 0) {
+                    sum = num;
+                    numbers.push(num);
+                    continue;
+                }
+
+                // Determine if we should attempt to subtract
+                let isSubtract = false;
                 if (config.operators.includes("subtraction")) {
-                    // Logic: If user selected subtraction, we want meaningful subtraction logic.
-                    // If rows > 2, it's a mix.
-                    // If start of loop (r=0), keep positive.
-                    // If subsequent rows, chance of negative.
-                    if (r > 0 && Math.random() > 0.4) {
-                        num = -num;
+                    // If purely subtraction selected or mixed, we allow negatives.
+                    // Using similar probability to Admin Panel (70% chance subtract)
+                    // or keeping existing website logic (approx 60%)
+                    isSubtract = Math.random() > 0.4;
+                }
+
+                // Constraint: Result (and usually intermediate) should not be negative
+                if (isSubtract) {
+                    if (sum - num < 0) {
+                        // If subtracting results in negative, flip to addition
+                        isSubtract = false;
                     }
                 }
 
-                // Correction to prevent negative total for "Student" level if needed
-                // But for now, we allow it or try to adjust the first number to be larger?
-                // Let's stick to pure random generation as requested originally but ensuring clean display.
+                if (isSubtract) {
+                    num = -num;
+                }
 
-                numbers.push(num);
                 sum += num;
+                numbers.push(num);
             }
             answer = sum;
         }
