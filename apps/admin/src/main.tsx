@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/providers/theme-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
 import App from './App';
 import './index.css';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
         <ThemeProvider defaultTheme="system" storageKey="wisdom-admin-theme">
           <App />
           <Toaster position="top-right" richColors />
+          <SpeedInsights />
         </ThemeProvider>
       </QueryProvider>
     </BrowserRouter>

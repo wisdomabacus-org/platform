@@ -6,6 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/referral-tracker";
 import { ModalProvider } from "@/providers/modal-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 // Setup Inter as --font-sans (body)
 const fontSans = Inter({
@@ -44,6 +45,7 @@ export default function RootLayout({
             <ReferralTracker />
             <ModalProvider />
             {children}
+            <SpeedInsights />
           </AuthProvider>
           <Analytics />
         </QueryProvider>
