@@ -21,11 +21,18 @@
     "db:reset": "bunx supabase db reset",
     "db:push": "bunx supabase db push",
     "db:status": "bunx supabase status",
-    "db:types": "turbo run generate:types --filter=@platform/database"
+    "db:types": "turbo run generate:types --filter=@platform/database",
+    "db:seed-production": "node scripts/seed-production-interactive.js"
   },
   "devDependencies": {
     "turbo": "latest",
     "typescript": "^5.0.0"
   },
-  "packageManager": "bun@1.2.0"
+  "packageManager": "bun@1.2.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.94.0",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
+    "prompts": "^2.4.2"
+  }
 }
