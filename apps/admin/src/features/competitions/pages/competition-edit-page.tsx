@@ -66,6 +66,8 @@ export default function CompetitionEditPage() {
         const payload: any = {
             ...basicInfo,
             exam_date: values.exam_date.toISOString(),
+            exam_window_start: values.exam_window_start.toISOString(),
+            exam_window_end: values.exam_window_end.toISOString(),
             registration_start_date: values.registration_start_date.toISOString(),
             registration_end_date: values.registration_end_date.toISOString(),
         };

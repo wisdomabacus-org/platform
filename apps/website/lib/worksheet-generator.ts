@@ -35,52 +35,90 @@ const generateQuestions = (config: WorksheetConfig): Question[] => {
 
         // Logic for Addition/Subtraction (Vertical Stack)
         if (operator === "addition" || operator === "subtraction") {
-            let sum = 0;
-            for (let r = 0; r < config.rows; r++) {
-                let num = generateRandomNumber(config.digits);
+            // For subtraction mode, we need to be smarter about generating numbers
+            // to ensure the final answer is NEVER negative
 
-                // First number logic: always positive and sets the initial sum
-                if (r === 0) {
-                    sum = num;
+            const maxNum = Math.pow(10, config.digits) - 1;
+            const minNum = Math.pow(10, config.digits - 1);
+
+            // Strategy: Generate all numbers first, then adjust
+            // For subtraction: Start with a larger number, then carefully subtract
+
+            if (operator === "subtraction") {
+                // For pure subtraction: we generate a mix of + and - operations
+                // ensuring running total never goes negative
+
+                // Start with a significantly larger first number
+                // This gives us "room" to subtract
+                let firstNum = generateRandomNumber(config.digits);
+                // Make first number larger for subtraction (at least 50% more than average)
+                firstNum = Math.max(firstNum, Math.floor(maxNum * 0.6));
+                numbers.push(firstNum);
+                let runningSum = firstNum;
+
+                for (let r = 1; r < config.rows; r++) {
+                    // Decide if this row should subtract or add
+                    // Use weighted probability: 70% subtract, 30% add
+                    let shouldSubtract = Math.random() < 0.7;
+
+                    if (shouldSubtract) {
+                        // Calculate max we can safely subtract
+                        // We need to reserve room for remaining rows to potentially add back
+                        const remainingRows = config.rows - r - 1;
+                        const reserveAmount = remainingRows > 0 ? minNum * remainingRows : 0;
+                        const maxSubtractable = Math.max(0, runningSum - reserveAmount);
+
+                        if (maxSubtractable < minNum) {
+                            // Can't subtract enough, switch to addition
+                            shouldSubtract = false;
+                        } else {
+                            // Generate a number we can safely subtract
+                            const subNum = Math.floor(Math.random() * (maxSubtractable - minNum + 1)) + minNum;
+                            numbers.push(-subNum);
+                            runningSum -= subNum;
+                            continue;
+                        }
+                    }
+
+                    // Addition case
+                    const addNum = generateRandomNumber(config.digits);
+                    numbers.push(addNum);
+                    runningSum += addNum;
+                }
+
+                answer = runningSum;
+            } else {
+                // Pure addition - simple case
+                let sum = 0;
+                for (let r = 0; r < config.rows; r++) {
+                    const num = generateRandomNumber(config.digits);
                     numbers.push(num);
-                    continue;
+                    sum += num;
                 }
+                answer = sum;
+            }
 
-                // Determine if we should attempt to subtract
-                let isSubtract = false;
-                if (config.operators.includes("subtraction")) {
-                    // If purely subtraction selected or mixed, we allow negatives.
-                    // Using similar probability to Admin Panel (70% chance subtract)
-                    // or keeping existing website logic (approx 60%)
-                    isSubtract = Math.random() > 0.4;
-                }
-
-                // Constraint: Result (and usually intermediate) should not be negative
-                if (isSubtract) {
-                    if (sum - num < 0) {
-                        // If subtracting results in negative, flip to addition
-                        isSubtract = false;
+            // Final safety check - if answer is still negative, flip signs
+            if (answer < 0) {
+                // This shouldn't happen with our logic, but as a fallback:
+                // Convert all negatives to positives
+                for (let idx = 0; idx < numbers.length; idx++) {
+                    if (numbers[idx] < 0) {
+                        numbers[idx] = Math.abs(numbers[idx]);
                     }
                 }
-
-                if (isSubtract) {
-                    num = -num;
-                }
-
-                sum += num;
-                numbers.push(num);
+                answer = numbers.reduce((a, b) => a + b, 0);
             }
-            answer = sum;
         }
         else if (operator === "multiplication") {
             const a = generateRandomNumber(config.digits);
-            const b = generateRandomNumber(config.digits); // Could be smaller digits for multiplier
+            const b = generateRandomNumber(Math.min(config.digits, 2)); // Smaller multiplier
             numbers.push(a);
             numbers.push(b);
             answer = a * b;
         }
         else if (operator === "division") {
-            const divisor = generateRandomNumber(1);
+            const divisor = generateRandomNumber(1) || 1; // Avoid zero
             const quotient = generateRandomNumber(config.digits);
             const dividend = divisor * quotient;
             numbers.push(dividend);

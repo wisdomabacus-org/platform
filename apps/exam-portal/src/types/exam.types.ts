@@ -48,6 +48,7 @@ export interface InitializeExamResponse {
   examType: ExamType;
   examId: string;
   questions: Question[];
+  savedAnswers?: Record<string, number>; // For session resume
 }
 
 // Payload to send when saving an answer

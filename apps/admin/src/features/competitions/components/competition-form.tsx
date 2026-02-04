@@ -81,7 +81,11 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
             duration: initialData?.duration || 60,
             total_marks: initialData?.total_marks || 100,
             total_questions: initialData?.total_questions || 50,
+            min_grade: initialData?.min_grade || 1,
+            max_grade: initialData?.max_grade || 12,
             exam_date: initialData?.exam_date ? new Date(initialData.exam_date) : undefined,
+            exam_window_start: initialData?.exam_window_start ? new Date(initialData.exam_window_start) : undefined,
+            exam_window_end: initialData?.exam_window_end ? new Date(initialData.exam_window_end) : undefined,
             registration_start_date: initialData?.registration_start_date
                 ? new Date(initialData.registration_start_date)
                 : undefined,
@@ -104,6 +108,7 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                 })) || []) as any,
         } as any,
     });
+
 
     const {
         fields: syllabusFields,
@@ -519,6 +524,121 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                         </div>
                                     </FormControl>
                                     <FormDescription>Set 0 for free</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    {/* Grade Range & Exam Window */}
+                    <div className="grid gap-5 rounded-md border p-5 md:grid-cols-2 lg:grid-cols-4">
+                        <FormField
+                            control={form.control as any}
+                            name="min_grade"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Min Grade</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={12}
+                                            {...field}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control as any}
+                            name="max_grade"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Max Grade</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={12}
+                                            {...field}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 12)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control as any}
+                            name="exam_window_start"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Exam Window Start</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'w-full justify-start text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {field.value ? format(field.value, 'PPP') : 'Select date'}
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={field.onChange}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormDescription>When exam can be started</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control as any}
+                            name="exam_window_end"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Exam Window End</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'w-full justify-start text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {field.value ? format(field.value, 'PPP') : 'Select date'}
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={field.onChange}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormDescription>Last time to submit</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}

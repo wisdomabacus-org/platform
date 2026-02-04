@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMockTest, useUpdateMockTest } from '../hooks/use-mock-tests';
 import { Button } from '@/shared/components/ui/button';
@@ -23,6 +24,7 @@ import {
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { AssignQuestionBankModal } from '../components/assign-question-bank-modal';
 
 // Difficulty badge configuration
 const DIFFICULTY_CONFIG: Record<string, { color: string; bgColor: string }> = {
@@ -91,6 +93,7 @@ export default function MockTestDetailPage() {
     const navigate = useNavigate();
     const { data: mockTest, isLoading } = useMockTest(id!);
     const { mutate: updateMockTest, isPending: isUpdating } = useUpdateMockTest();
+    const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
 
     const handlePublish = () => {
         if (!mockTest) return;
@@ -358,7 +361,7 @@ export default function MockTestDetailPage() {
                             </div>
                             <Button
                                 size="sm"
-                                onClick={() => navigate(ROUTES.QUESTION_BANKS)}
+                                onClick={() => setQuestionBankModalOpen(true)}
                             >
                                 Assign Question Banks
                             </Button>
@@ -366,12 +369,19 @@ export default function MockTestDetailPage() {
                         <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-4">
                             <p><strong>How it works:</strong></p>
                             <ul className="list-disc list-inside mt-2 space-y-1">
-                                <li>Go to Question Banks to create or select existing banks</li>
+                                <li>Click "Assign Question Banks" to select question banks</li>
                                 <li>Question banks contain pre-generated abacus questions by grade level</li>
-                                <li>Link question banks to this mock test</li>
+                                <li>Selected question banks will be used during the test</li>
                             </ul>
                         </div>
                     </div>
+
+                    {/* Question Bank Assignment Modal */}
+                    <AssignQuestionBankModal
+                        mockTestId={id!}
+                        open={questionBankModalOpen}
+                        onOpenChange={setQuestionBankModalOpen}
+                    />
                 </TabsContent>
 
                 <TabsContent value="analytics" className="mt-4">

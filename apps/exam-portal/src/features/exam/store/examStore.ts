@@ -23,7 +23,7 @@ interface ExamState {
   setAnswer: (questionId: string, answerIndex: number) => void;
   toggleMarkForReview: (questionId: string) => void;
   decrementTime: () => void;
-  loadExam: (metadata: ExamMetadata, questions: Question[]) => void;
+  loadExam: (metadata: ExamMetadata, questions: Question[], savedAnswers?: Record<string, number>, timeRemaining?: number) => void;
   submitExam: () => void;
   resetExam: () => void;
 }
@@ -83,13 +83,15 @@ const useExamStoreBase = create<ExamState>()(
           timeLeft: Math.max(0, state.timeLeft - 1),
         })),
 
-      loadExam: (metadata, questions) =>
+      loadExam: (metadata, questions, savedAnswers?, timeRemaining?) =>
         set({
           examMetadata: metadata,
           questions,
-          timeLeft: metadata.durationMinutes * 60, // Convert to seconds
+          // Use time remaining if provided (for resume), otherwise calculate from duration
+          timeLeft: timeRemaining ?? metadata.durationMinutes * 60,
           currentQuestion: 1,
-          answers: new Map(),
+          // Restore saved answers if provided
+          answers: savedAnswers ? new Map(Object.entries(savedAnswers)) : new Map(),
           markedQuestions: new Set(),
           isExamSubmitted: false,
         }),

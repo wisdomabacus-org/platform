@@ -250,6 +250,23 @@ export const authService = {
       .eq('id', authUser.id)
       .single();
 
+    // Fetch user enrollments
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('competition_id')
+      .eq('user_id', authUser.id)
+      .eq('status', 'confirmed')
+      .eq('is_payment_confirmed', true);
+
+    // Fetch user mock test attempts
+    const { data: mockTestAttempts } = await supabase
+      .from('user_mock_test_attempts')
+      .select('mock_test_id')
+      .eq('user_id', authUser.id);
+
+    const enrolledCompetitions = enrollments?.map(e => e.competition_id) || [];
+    const attemptedMockTests = mockTestAttempts?.map(m => m.mock_test_id) || [];
+
     if (profileError) {
       // Return minimal user if profile doesn't exist
       return {
@@ -259,12 +276,20 @@ export const authService = {
         phone: authUser.phone,
         authProvider: 'email',
         isProfileComplete: false,
+        enrolledCompetitions,
+        attemptedMockTests,
         createdAt: authUser.created_at,
         updatedAt: authUser.updated_at || authUser.created_at,
       };
     }
 
-    return mapDbProfileToUser(profile);
+    const user = mapDbProfileToUser(profile);
+    // Add enrollments and attempts to the user object
+    return {
+      ...user,
+      enrolledCompetitions,
+      attemptedMockTests,
+    };
   },
 
   /**

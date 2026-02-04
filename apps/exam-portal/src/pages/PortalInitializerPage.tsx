@@ -83,11 +83,18 @@ const PortalInitializerPage = () => {
       marks: q.marks,
     }));
 
-    // Load into Zustand store
-    loadExam(metadata, questions);
+    // Load into Zustand store with saved answers and time remaining for session resume
+    loadExam(
+      metadata,
+      questions,
+      examData.savedAnswers, // Restore previous answers if any
+      examData.timeRemaining // Use remaining time for resumed sessions
+    );
 
-    // Navigate to instructions page
-    navigate("/instructions");
+    // If there are saved answers, go directly to exam (resume mode)
+    // Otherwise, show instructions first
+    const hasSavedAnswers = examData.savedAnswers && Object.keys(examData.savedAnswers).length > 0;
+    navigate(hasSavedAnswers ? "/exam" : "/instructions");
   }, [response, loadExam, navigate]);
 
   // Handle error: navigate to error page with appropriate code

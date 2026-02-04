@@ -219,6 +219,7 @@ export function mapInitExamResponse(response: DbInitExamResponse): InitializeExa
         startTime: response.start_time,
         endTime: response.end_time,
         questions: response.questions.map(mapDbQuestionToQuestion),
+        savedAnswers: response.saved_answers,
     };
 }
 

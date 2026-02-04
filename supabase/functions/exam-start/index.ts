@@ -67,8 +67,63 @@ serve(async (req: Request) => {
 
         const { data: existingSubmission } = await existingQuery.single();
 
+        // If submission exists, check if we can resume or if it's already submitted
         if (existingSubmission) {
-            return errorResponse("You have already attempted this exam", 409);
+            if (existingSubmission.status === "submitted" || existingSubmission.status === "graded") {
+                return errorResponse("You have already attempted this exam", 409);
+            }
+
+            // Check for existing session that is still valid
+            const { data: existingSession } = await supabase
+                .from("exam_sessions")
+                .select("*")
+                .eq("submission_id", existingSubmission.id)
+                .eq("status", "in-progress")
+                .single();
+
+            if (existingSession) {
+                const now = Date.now();
+                const endTime = new Date(existingSession.end_time).getTime();
+
+                // If session is still valid (not expired), return it for resumption
+                if (now < endTime) {
+                    const timeRemaining = Math.floor((endTime - now) / 1000);
+
+                    // Get exam title from submission
+                    const { data: submission } = await supabase
+                        .from("submissions")
+                        .select("exam_snapshot, total_questions")
+                        .eq("id", existingSubmission.id)
+                        .single();
+
+                    const response: StartExamResponse = {
+                        session_token: existingSession.session_token,
+                        submission_id: existingSubmission.id,
+                        exam_title: submission?.exam_snapshot?.title || "Exam",
+                        duration_minutes: existingSession.duration_minutes,
+                        total_questions: submission?.total_questions || 0,
+                        start_time: new Date(existingSession.start_time).getTime(),
+                        end_time: endTime,
+                    };
+
+                    return jsonResponse({
+                        success: true,
+                        data: response,
+                        message: "Resuming existing session",
+                    });
+                }
+
+                // Session has expired - mark it and create new error
+                await supabase
+                    .from("exam_sessions")
+                    .update({ status: "expired" })
+                    .eq("id", existingSession.id);
+
+                return errorResponse("Your previous session has expired", 410);
+            }
+
+            // No valid session but submission exists in-progress state - treat as error
+            return errorResponse("Previous exam session was not properly closed", 409);
         }
 
         // Validate access based on exam type

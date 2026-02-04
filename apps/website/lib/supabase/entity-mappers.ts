@@ -60,6 +60,9 @@ export interface User {
     dateOfBirth?: string;
     isProfileComplete: boolean;
     emailVerified?: boolean;
+    enrolledCompetitions?: string[];
+    attemptedMockTests?: string[];
+    activeSubscription?: string | null;
     lastLogin?: string;
     createdAt: string;
     updatedAt: string;
@@ -272,6 +275,9 @@ export function mapDbMockTestToMockTest(mockTest: DbMockTest | DbMockTestWithSta
     // Cast difficulty to proper union type
     const difficulty = (mockTest.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard';
 
+    // is_free is the inverse of is_locked - if not locked, it's free
+    const isLocked = (mockTest as { is_locked?: boolean }).is_locked ?? false;
+
     return {
         id: mockTest.id ?? '',
         title: mockTest.title ?? '',
@@ -292,7 +298,7 @@ export function mapDbMockTestToMockTest(mockTest: DbMockTest | DbMockTestWithSta
 
         // Metadata
         isPublished: mockTest.is_published ?? false,
-        isFree: (mockTest as { is_free?: boolean }).is_free ?? true,
+        isFree: !isLocked, // Invert is_locked to get isFree
 
         createdAt: mockTest.created_at ?? new Date().toISOString(),
         updatedAt: mockTest.updated_at ?? new Date().toISOString(),

@@ -22,13 +22,10 @@ export default function CompetitionCreatePage() {
         const payload: any = {
             ...basicInfo,
             exam_date: values.exam_date.toISOString(),
+            exam_window_start: values.exam_window_start.toISOString(),
+            exam_window_end: values.exam_window_end.toISOString(),
             registration_start_date: values.registration_start_date.toISOString(),
             registration_end_date: values.registration_end_date.toISOString(),
-            // Default expected values for required fields not in form
-            exam_window_start: values.exam_date.toISOString(),
-            exam_window_end: values.exam_date.toISOString(),
-            min_grade: 1,
-            max_grade: 12,
             slug:
                 values.slug ||
                 values.title

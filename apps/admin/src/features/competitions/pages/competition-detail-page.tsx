@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCompetition, useUpdateCompetition } from '../hooks/use-competitions';
 import { Button } from '@/shared/components/ui/button';
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
+import { AssignQuestionBankModal } from '../components/assign-question-bank-modal';
 
 // Status badge configuration
 const STATUS_CONFIG: Record<
@@ -105,6 +107,7 @@ export default function CompetitionDetailPage() {
     const navigate = useNavigate();
     const { data: competition, isLoading } = useCompetition(id!);
     const { mutate: updateCompetition, isPending: isUpdating } = useUpdateCompetition();
+    const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
 
     const handlePublish = () => {
         if (!competition) return;
@@ -384,7 +387,7 @@ export default function CompetitionDetailPage() {
                             </div>
                             <Button
                                 size="sm"
-                                onClick={() => navigate(ROUTES.QUESTION_BANKS)}
+                                onClick={() => setQuestionBankModalOpen(true)}
                             >
                                 Assign Question Banks
                             </Button>
@@ -392,12 +395,19 @@ export default function CompetitionDetailPage() {
                         <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-4">
                             <p><strong>How it works:</strong></p>
                             <ul className="list-disc list-inside mt-2 space-y-1">
-                                <li>Go to Question Banks to create or select existing banks</li>
+                                <li>Click "Assign Question Banks" to select question banks</li>
                                 <li>Question banks contain pre-generated abacus questions by grade level</li>
-                                <li>Link question banks to this competition for the exam</li>
+                                <li>Selected question banks will be used during the exam</li>
                             </ul>
                         </div>
                     </div>
+
+                    {/* Question Bank Assignment Modal */}
+                    <AssignQuestionBankModal
+                        competitionId={id!}
+                        open={questionBankModalOpen}
+                        onOpenChange={setQuestionBankModalOpen}
+                    />
                 </TabsContent>
 
                 <TabsContent value="leaderboard" className="mt-4">
