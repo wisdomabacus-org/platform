@@ -21,6 +21,7 @@ const MESSAGE_CHANGE_INTERVAL = 1200; // 1.2 seconds
 
 const PortalInitializerPage = () => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [shouldFetch, setShouldFetch] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionTokenParam = searchParams.get("session");
@@ -28,18 +29,43 @@ const PortalInitializerPage = () => {
   const loadExam = useExamStore.use.loadExam();
   const setSessionToken = useExamStore.use.setSessionToken();
   const sessionToken = useExamStore.use.sessionToken();
+  const examMetadata = useExamStore.use.examMetadata();
+  const questions = useExamStore.use.questions();
+  const timeLeft = useExamStore.use.timeLeft();
 
-  // 1. Sync token from URL to store
+  // Check for existing persisted session on mount
   useEffect(() => {
+    // If we have a session token in URL, it's a new session request
     if (sessionTokenParam) {
-      setSessionToken(sessionTokenParam);
-      // Clean URL logic could go here
-    }
-  }, [sessionTokenParam, setSessionToken]);
+      // Check if the persisted session matches the URL token
+      if (sessionToken === sessionTokenParam && examMetadata && questions.length > 0 && timeLeft > 0) {
+        // Same session token - resume existing session
+        console.log("Resuming persisted exam session");
+        navigate("/exam");
+        return;
+      }
 
-  // Call the initialization API only when token is available
+      // New session or different token - fetch from API
+      setSessionToken(sessionTokenParam);
+      setShouldFetch(true);
+      return;
+    }
+
+    // No session token in URL - check for persisted session
+    if (examMetadata && questions.length > 0 && timeLeft > 0 && sessionToken) {
+      // Resume the persisted session
+      console.log("Resuming persisted exam session (no URL token)");
+      navigate("/exam");
+      return;
+    }
+
+    // No persisted session and no URL token - error
+    navigate("/error?code=NO_SESSION&message=No+exam+session+found");
+  }, [sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, setSessionToken, navigate]);
+
+  // Call the initialization API only when we need to fetch
   const { data: response, isLoading, error } = useInitializeExamQuery({
-    enabled: !!(sessionToken || sessionTokenParam),
+    enabled: shouldFetch && !!(sessionToken || sessionTokenParam),
   });
 
   // Cycle through loading messages

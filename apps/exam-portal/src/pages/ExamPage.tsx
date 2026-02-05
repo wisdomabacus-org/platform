@@ -60,9 +60,11 @@ const ExamPage = () => {
   });
 
   // Safety check: redirect if no exam data
+  // The PortalInitializerPage will handle checking for persisted session
   useEffect(() => {
     if (!examMetadata || questions.length === 0) {
-      navigate("/error?code=NO_EXAM_DATA&message=Exam+session+not+found");
+      // Redirect to home which will check for persisted session
+      navigate("/");
     }
   }, [examMetadata, questions, navigate]);
 

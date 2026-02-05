@@ -5,10 +5,8 @@ import { ExamLegend } from "./ExamLegend";
 interface QuestionPaletteProps {
   totalQuestions: number;
   currentQuestion: number;
-
-  // 👇 CHANGE: Receive answers object directly
-  answers: Record<number, { selectedOptionIndex: number }>;
-
+  // Accept Set of question numbers that are answered
+  answeredQuestions: Set<number>;
   markedQuestions: Set<number>;
   onQuestionSelect: (questionId: number) => void;
   isCompact?: boolean;
@@ -17,19 +15,18 @@ interface QuestionPaletteProps {
 export const QuestionPalette = ({
   totalQuestions,
   currentQuestion,
-  answers,
+  answeredQuestions,
   markedQuestions,
   onQuestionSelect,
   isCompact = false,
 }: QuestionPaletteProps) => {
 
-  const isAnswered = (id: number) =>
-    answers[id]?.selectedOptionIndex !== undefined &&
-    answers[id]?.selectedOptionIndex >= 0;
+  const isAnswered = (id: number) => answeredQuestions?.has(id) ?? false;
+  const isMarked = (id: number) => markedQuestions?.has(id) ?? false;
 
   const getButtonVariant = (id: number) => {
     if (id === currentQuestion) return "default";
-    if (markedQuestions.has(id)) return "marked";
+    if (isMarked(id)) return "marked";
     if (isAnswered(id)) return "answered";
     return "outline";
   };
