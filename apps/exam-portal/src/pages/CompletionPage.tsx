@@ -44,8 +44,18 @@ const CompletionPage = () => {
   // Try to get submissionId from URL params or store
   const submissionIdFromUrl = searchParams.get("submission");
   const examMetadata = useExamStore.use.examMetadata();
+  const resetExam = useExamStore.use.resetExam();
   const submissionId =
     submissionIdFromUrl || examMetadata?.submissionId || null;
+
+  // Clear the exam session on mount (exam is complete)
+  useEffect(() => {
+    // Small delay to ensure we've captured any needed data first
+    const timer = setTimeout(() => {
+      resetExam();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [resetExam]);
 
   // Fetch submission results
   const { data: response, isLoading, error } = useSubmissionQuery(submissionId);
@@ -155,8 +165,8 @@ const CompletionPage = () => {
       submission.percentage >= 80
         ? "text-green-600"
         : submission.percentage >= 60
-        ? "text-yellow-600"
-        : "text-orange-600";
+          ? "text-yellow-600"
+          : "text-orange-600";
 
     return (
       <PortalLayout className="flex items-center justify-center">

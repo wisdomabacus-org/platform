@@ -84,13 +84,21 @@ const ExamPage = () => {
   // Get selected answer for current question
   const selectedAnswer = useMemo(() => {
     if (!currentQuestionData) return null;
-    return answers.get(currentQuestionData.id) ?? null;
+    // Defensive: ensure answers is a Map
+    if (answers instanceof Map) {
+      return answers.get(currentQuestionData.id) ?? null;
+    }
+    return null;
   }, [answers, currentQuestionData]);
 
   // Check if current question is marked
   const isCurrentMarked = useMemo(() => {
     if (!currentQuestionData) return false;
-    return markedQuestions.has(currentQuestionData.id);
+    // Defensive: ensure markedQuestions is a Set
+    if (markedQuestions instanceof Set) {
+      return markedQuestions.has(currentQuestionData.id);
+    }
+    return false;
   }, [markedQuestions, currentQuestionData]);
 
   // Handle answer selection (optimistic update + API call)
@@ -129,6 +137,8 @@ const ExamPage = () => {
   // Convert answers and marked from string IDs to number indexes for components
   const answeredQuestionsSet = useMemo(() => {
     const set = new Set<number>();
+    // Defensive: ensure answers is a Map
+    if (!(answers instanceof Map)) return set;
     questions.forEach((q, idx) => {
       if (answers.has(q.id)) {
         set.add(idx + 1); // 1-based index
@@ -139,6 +149,8 @@ const ExamPage = () => {
 
   const markedQuestionsSet = useMemo(() => {
     const set = new Set<number>();
+    // Defensive: ensure markedQuestions is a Set
+    if (!(markedQuestions instanceof Set)) return set;
     questions.forEach((q, idx) => {
       if (markedQuestions.has(q.id)) {
         set.add(idx + 1); // 1-based index
@@ -156,7 +168,7 @@ const ExamPage = () => {
   const handleConfirmSubmit = useCallback(() => {
     // TODO: Wire this to useExamSubmit mutation in next step
     console.log("Submitting exam...");
-    navigate("/completion");
+    navigate("/complete");
   }, [navigate]);
 
   // Show error state if no data
@@ -186,18 +198,9 @@ const ExamPage = () => {
 
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Question content (left side on desktop, full on mobile) */}
-        <QuestionContent
-          question={currentQuestionData}
-          currentQuestion={currentQuestion}
-          totalQuestions={totalQuestions}
-          selectedAnswer={selectedAnswer}
-          onAnswerSelect={handleAnswerSelect}
-        />
-
-        {/* Question palette (right sidebar on desktop, sheet on mobile) */}
+        {/* Question palette (left sidebar on desktop, sheet on mobile) */}
         {!isMobile ? (
-          <aside className="hidden w-80 flex-col border-l bg-card md:flex">
+          <aside className="hidden w-80 flex-col border-r bg-card md:flex">
             <div className="flex-1 overflow-y-auto p-4">
               <QuestionPalette
                 totalQuestions={totalQuestions}
@@ -213,7 +216,7 @@ const ExamPage = () => {
           </aside>
         ) : (
           <Sheet open={isPaletteOpen} onOpenChange={setIsPaletteOpen}>
-            <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetContent side="left" className="w-full sm:max-w-md">
               <SheetHeader>
                 <SheetTitle>Question Palette</SheetTitle>
               </SheetHeader>
@@ -242,6 +245,15 @@ const ExamPage = () => {
             </SheetContent>
           </Sheet>
         )}
+
+        {/* Question content (right side on desktop, full on mobile) */}
+        <QuestionContent
+          question={currentQuestionData}
+          currentQuestion={currentQuestion}
+          totalQuestions={totalQuestions}
+          selectedAnswer={selectedAnswer}
+          onAnswerSelect={handleAnswerSelect}
+        />
       </div>
 
       {/* Navigation footer */}

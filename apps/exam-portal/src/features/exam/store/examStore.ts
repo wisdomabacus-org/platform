@@ -1,6 +1,6 @@
 // src/features/exam/store/examStore.ts
 import { create } from "zustand";
-import { devtools, persist, createJSONStorage } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
 import { createSelectors } from "@/lib/createSelectors";
 import type { Question, ExamMetadata } from "@/types/exam.types";
 
@@ -28,62 +28,34 @@ interface ExamState {
   resetExam: () => void;
 }
 
-// Custom storage handlers for Map and Set serialization
-const customStorage = {
-  getItem: (name: string) => {
-    const str = sessionStorage.getItem(name);
-    if (!str) return null;
-
-    try {
-      const parsed = JSON.parse(str);
-      // Rehydrate state
-      if (parsed.state) {
-        // Convert answers array back to Map
-        if (parsed.state.answers && Array.isArray(parsed.state.answers)) {
-          parsed.state.answers = new Map(parsed.state.answers);
-        }
-        // Convert markedQuestions array back to Set
-        if (parsed.state.markedQuestions && Array.isArray(parsed.state.markedQuestions)) {
-          parsed.state.markedQuestions = new Set(parsed.state.markedQuestions);
-        }
-      }
-      return parsed;
-    } catch (e) {
-      console.error("Failed to parse exam store:", e);
-      return null;
-    }
-  },
-  setItem: (name: string, value: unknown) => {
-    try {
-      // Cast to object with state property
-      const valueObj = value as { state: Record<string, unknown>; version?: number };
-      const state = valueObj.state;
-
-      // Serialize with Map/Set converted to arrays
-      const serializedState: Record<string, unknown> = {
-        ...state,
-        // Convert Map to array for JSON serialization
-        answers: state.answers instanceof Map
-          ? Array.from((state.answers as Map<string, number>).entries())
-          : state.answers,
-        // Convert Set to array for JSON serialization
-        markedQuestions: state.markedQuestions instanceof Set
-          ? Array.from(state.markedQuestions as Set<string>)
-          : state.markedQuestions,
-      };
-
-      const serialized = {
-        state: serializedState,
-        version: valueObj.version,
-      };
-
-      sessionStorage.setItem(name, JSON.stringify(serialized));
-    } catch (e) {
-      console.error("Failed to store exam store:", e);
-    }
-  },
-  removeItem: (name: string) => sessionStorage.removeItem(name),
+// Helper to ensure answers is always a Map
+const ensureMap = (value: unknown): Map<string, number> => {
+  if (value instanceof Map) return value;
+  if (Array.isArray(value)) {
+    // Check if it's an array of entries [[key, value], ...]
+    return new Map(value as [string, number][]);
+  }
+  if (value && typeof value === 'object') {
+    return new Map(Object.entries(value as Record<string, number>));
+  }
+  return new Map();
 };
+
+// Helper to ensure markedQuestions is always a Set
+const ensureSet = (value: unknown): Set<string> => {
+  if (value instanceof Set) return value;
+  if (Array.isArray(value)) return new Set(value as string[]);
+  return new Set();
+};
+
+// Type for persisted state (only data, no actions)
+type PersistedExamState = Pick<
+  ExamState,
+  'currentQuestion' | 'answers' | 'markedQuestions' | 'timeLeft' |
+  'isExamSubmitted' | 'examMetadata' | 'questions' | 'sessionToken'
+>;
+
+const STORAGE_KEY = "exam-session-storage";
 
 const useExamStoreBase = create<ExamState>()(
   devtools(
@@ -120,14 +92,16 @@ const useExamStoreBase = create<ExamState>()(
 
         setAnswer: (questionId, answerIndex) =>
           set((state) => {
-            const newAnswers = new Map(state.answers);
+            const currentAnswers = ensureMap(state.answers);
+            const newAnswers = new Map(currentAnswers);
             newAnswers.set(questionId, answerIndex);
             return { answers: newAnswers };
           }),
 
         toggleMarkForReview: (questionId) =>
           set((state) => {
-            const newMarked = new Set(state.markedQuestions);
+            const currentMarked = ensureSet(state.markedQuestions);
+            const newMarked = new Set(currentMarked);
             if (newMarked.has(questionId)) {
               newMarked.delete(questionId);
             } else {
@@ -158,7 +132,7 @@ const useExamStoreBase = create<ExamState>()(
 
         resetExam: () => {
           // Clear session storage on reset
-          sessionStorage.removeItem("exam-session-storage");
+          sessionStorage.removeItem(STORAGE_KEY);
           set({
             currentQuestion: 1,
             answers: new Map(),
@@ -172,9 +146,58 @@ const useExamStoreBase = create<ExamState>()(
         },
       }),
       {
-        name: "exam-session-storage",
-        storage: createJSONStorage(() => customStorage),
+        name: STORAGE_KEY,
+        storage: {
+          getItem: (name) => {
+            const str = sessionStorage.getItem(name);
+            if (!str) return null;
+            try {
+              return JSON.parse(str);
+            } catch {
+              return null;
+            }
+          },
+          setItem: (name, value) => {
+            try {
+              // Access state safely
+              const state = value.state as ExamState;
+
+              // Serialize Map and Set to arrays
+              const serializedState = {
+                currentQuestion: state.currentQuestion,
+                answers: state.answers instanceof Map
+                  ? Array.from(state.answers.entries())
+                  : [],
+                markedQuestions: state.markedQuestions instanceof Set
+                  ? Array.from(state.markedQuestions)
+                  : [],
+                timeLeft: state.timeLeft,
+                isExamSubmitted: state.isExamSubmitted,
+                examMetadata: state.examMetadata,
+                questions: state.questions,
+                sessionToken: state.sessionToken,
+              };
+
+              sessionStorage.setItem(name, JSON.stringify({
+                state: serializedState,
+                version: value.version
+              }));
+            } catch (e) {
+              console.error("Failed to store exam state:", e);
+            }
+          },
+          removeItem: (name) => sessionStorage.removeItem(name),
+        },
+        // Rehydrate: convert arrays back to Map/Set after loading from storage
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            // Convert arrays back to Map/Set
+            state.answers = ensureMap(state.answers);
+            state.markedQuestions = ensureSet(state.markedQuestions);
+          }
+        },
         // Only persist these fields (not functions)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         partialize: (state) => ({
           currentQuestion: state.currentQuestion,
           answers: state.answers,
@@ -184,7 +207,7 @@ const useExamStoreBase = create<ExamState>()(
           examMetadata: state.examMetadata,
           questions: state.questions,
           sessionToken: state.sessionToken,
-        }),
+        }) as any,
       }
     ),
     { name: "ExamStore" }

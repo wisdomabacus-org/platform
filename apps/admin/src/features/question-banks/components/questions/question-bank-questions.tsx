@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { useQuestions, useBulkCreateQuestions, useDeleteQuestion, useCreateQuestion } from '../../hooks/use-question-banks';
+import { useQuestions, useBulkCreateQuestions, useDeleteQuestion, useCreateQuestion, useBulkDeleteQuestions } from '../../hooks/use-question-banks';
 import { QuestionCard } from './question-card';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Switch } from '@/shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { Loader2, Wand2, Plus } from 'lucide-react';
+import { Loader2, Wand2, Plus, RefreshCw } from 'lucide-react';
 import { generateBatchQuestions } from '../../utils/question-generator';
 import { OperatorType, Question } from '../../types/question-bank.types';
 import { toast } from 'sonner';
@@ -18,34 +17,56 @@ import { ManualQuestionForm } from '../forms/manual-question-form';
 export function QuestionBankQuestions({ bankId }: { bankId: string }) {
     const { data: questions, isLoading } = useQuestions(bankId);
     const { mutate: bulkCreate, isPending: isGenerating } = useBulkCreateQuestions();
+    const { mutate: bulkDelete, isPending: isDeleting } = useBulkDeleteQuestions();
     const { mutate: createQuestion } = useCreateQuestion();
     const { mutate: deleteQuestion } = useDeleteQuestion();
 
     const [isManualOpen, setIsManualOpen] = useState(false);
 
     // Generation State
+    // Generation State - allowNegative is always false (no negative answers)
     const [genConfig, setGenConfig] = useState({
-        count: 10,
-        digits: 1,
-        rows: 3,
-        operator: 'mixed' as OperatorType,
-        allowNegative: false,
+        count: 30,
+        digits: 2,
+        rows: 4,
+        operator: 'subtraction' as OperatorType,
     });
 
     const handleGenerate = () => {
         const generated = generateBatchQuestions({
-            count: genConfig.count || 10,
+            count: genConfig.count || 30,
             digits: genConfig.digits,
-            rows: genConfig.rows || 3,
+            rows: genConfig.rows || 4,
             operators: genConfig.operator === 'mixed' ? ['addition', 'subtraction'] : [genConfig.operator],
-            allowNegative: genConfig.allowNegative,
+            allowNegative: false, // Never allow negative answers
         });
 
-        bulkCreate({ bankId, questions: generated as any }, {
-            onSuccess: () => {
-                toast.success(`Generated ${generated.length} questions successfully`);
-            }
-        });
+        // If there are existing questions, delete them first (replace mode)
+        const existingQuestionIds = questions?.map((q: Question) => q.id) || [];
+
+        if (existingQuestionIds.length > 0) {
+            // Delete all existing questions first, then create new ones
+            bulkDelete({ bankId, questionIds: existingQuestionIds }, {
+                onSuccess: () => {
+                    // Now create the new questions
+                    bulkCreate({ bankId, questions: generated as any }, {
+                        onSuccess: () => {
+                            toast.success(`Replaced with ${generated.length} new questions`);
+                        }
+                    });
+                },
+                onError: () => {
+                    toast.error('Failed to clear existing questions');
+                }
+            });
+        } else {
+            // No existing questions, just create new ones
+            bulkCreate({ bankId, questions: generated as any }, {
+                onSuccess: () => {
+                    toast.success(`Generated ${generated.length} questions successfully`);
+                }
+            });
+        }
     };
 
     const handleManualSave = (question: Partial<Question>) => {
@@ -180,25 +201,26 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
                                 </Select>
                             </div>
 
-                            {/* Advanced Settings */}
-                            {genConfig.operator === 'mixed' && (
-                                <div className="flex items-center justify-between space-y-0 rounded-md border p-3">
-                                    <Label className="text-sm font-normal">Allow Negatives</Label>
-                                    <Switch
-                                        checked={genConfig.allowNegative}
-                                        onCheckedChange={c => setGenConfig({ ...genConfig, allowNegative: c })}
-                                    />
-                                </div>
-                            )}
-
                             <Button
                                 className="w-full gap-2"
                                 onClick={handleGenerate}
-                                disabled={isGenerating}
+                                disabled={isGenerating || isDeleting}
                             >
-                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                                Generate Questions
+                                {(isGenerating || isDeleting) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (questions?.length ?? 0) > 0 ? (
+                                    <RefreshCw className="h-4 w-4" />
+                                ) : (
+                                    <Wand2 className="h-4 w-4" />
+                                )}
+                                {(questions?.length ?? 0) > 0 ? 'Regenerate Questions' : 'Generate Questions'}
                             </Button>
+
+                            {(questions?.length ?? 0) > 0 && (
+                                <p className="text-xs text-center text-muted-foreground">
+                                    This will replace all {questions?.length ?? 0} existing questions
+                                </p>
+                            )}
                         </div>
                     </TabsContent>
 

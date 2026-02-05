@@ -309,5 +309,16 @@ export const questionBanksService = {
             }
         }
         return results;
+    },
+
+    bulkDeleteQuestions: async (questionIds: string[]) => {
+        // Delete all questions in the array
+        const { error } = await supabase
+            .from('questions')
+            .delete()
+            .in('id', questionIds);
+
+        if (error) throw error;
+        return true;
     }
 };

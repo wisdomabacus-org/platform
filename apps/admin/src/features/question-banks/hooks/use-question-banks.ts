@@ -141,10 +141,27 @@ export function useBulkCreateQuestions() {
                 queryKey: [QUERY_KEYS.QUESTION_BANKS, variables.bankId, 'questions']
             });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
-            toast.success('Questions imported successfully');
         },
         onError: (error) => {
             toast.error('Failed to import questions');
+            console.error(error);
+        }
+    });
+}
+
+export function useBulkDeleteQuestions() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (args: { bankId: string; questionIds: string[] }) =>
+            questionBanksService.bulkDeleteQuestions(args.questionIds),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: [QUERY_KEYS.QUESTION_BANKS, variables.bankId, 'questions']
+            });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
+        },
+        onError: (error) => {
+            toast.error('Failed to delete questions');
             console.error(error);
         }
     });
