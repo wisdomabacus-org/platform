@@ -6,6 +6,7 @@ import { useExamTimer } from "@/features/exam/hooks/useExamTimer";
 import { useExamNavigation } from "@/features/exam/hooks/useExamNavigation";
 import { useExamSubmit } from "@/features/exam/hooks/useExamSubmit";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useHeartbeat } from "@/features/exam/hooks/useHeartbeat";
 import { useSubmitAnswerMutation } from "@/features/exam/api/exam.queries";
 
 // Components
@@ -24,7 +25,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const ExamPage = () => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -40,6 +41,8 @@ const ExamPage = () => {
   const markedQuestions = useExamStore.use.markedQuestions();
   const setAnswer = useExamStore.use.setAnswer();
   const toggleMarkForReview = useExamStore.use.toggleMarkForReview();
+  const hasHydrated = useExamStore.use._hasHydrated();
+  const isExamSubmitted = useExamStore.use.isExamSubmitted();
 
   // Hooks
   const { timeLeft, isTimeUp } = useExamTimer();
@@ -59,6 +62,8 @@ const ExamPage = () => {
     unansweredCount,
     markedCount,
   } = useExamSubmit();
+  // Heartbeat for time sync and auto-submit detection
+  useHeartbeat();
 
   // API mutation for saving answers
   const { mutate: submitAnswerToBackend } = useSubmitAnswerMutation({
@@ -68,21 +73,25 @@ const ExamPage = () => {
     },
   });
 
-  // Safety check: redirect if no exam data
+  // Safety check: redirect if no exam data (only after hydration)
   // The PortalInitializerPage will handle checking for persisted session
   useEffect(() => {
+    // Wait for hydration before redirecting
+    if (!hasHydrated) return;
+
     if (!examMetadata || questions.length === 0) {
       // Redirect to home which will check for persisted session
       navigate("/");
     }
-  }, [examMetadata, questions, navigate]);
+  }, [hasHydrated, examMetadata, questions, navigate]);
 
   // Auto-submit when time runs out
   useEffect(() => {
-    if (isTimeUp && !showSubmitDialog) {
-      setShowSubmitDialog(true);
+    if (isTimeUp && !showSubmitDialog && !isExamSubmitted) {
+      // Time is up - auto-submit immediately
+      handleConfirmSubmit();
     }
-  }, [isTimeUp, showSubmitDialog]);
+  }, [isTimeUp, showSubmitDialog, isExamSubmitted]);
 
   // Get current question data
   const currentQuestionData = useMemo(() => {
@@ -188,6 +197,18 @@ const ExamPage = () => {
     }
   }, [navigate, submitExamToApi]);
 
+  // Show loading while hydrating
+  if (!hasHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-sm text-muted-foreground">Restoring session...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show error state if no data
   if (!examMetadata || !currentQuestionData) {
     return (
@@ -227,9 +248,6 @@ const ExamPage = () => {
                 markedQuestions={markedQuestionsSet}
                 onQuestionSelect={handleQuestionSelect}
               />
-              <div className="mt-6">
-                <ExamLegend />
-              </div>
             </div>
           </aside>
         ) : (

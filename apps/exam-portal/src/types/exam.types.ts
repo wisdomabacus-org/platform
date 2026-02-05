@@ -21,14 +21,14 @@ export interface Question {
   marks: number;              // marks per question
   // Abacus-specific fields for vertical display
   type?: QuestionType;        // question type (abacus, text, image)
-  operations?: number[] | null; // Array of numbers for vertical display
-  operatorType?: OperatorType | null; // Type of operation for display
+  operations?: number[] | null; // Array of numbers for vertical display (e.g. [15, 3, -2])
+  operatorType?: OperatorType | null; // Type of operation for display markers
 }
 
 // Core exam metadata returned by initializeExam
 export interface ExamMetadata {
-  examSessionId: string;    // Redis exam session ID
-  submissionId: string;     // MongoDB submission ID
+  examSessionId: string;    // Postgres exam session ID
+  submissionId: string;     // Postgres submission ID
   examType: ExamType;
   examId: string;           // competitionId or mockTestId
   examTitle: string;
@@ -56,6 +56,9 @@ export interface InitializeExamResponse {
   examId: string;
   questions: Question[];
   savedAnswers?: Record<string, number>; // For session resume
+  // Resume state fields
+  lastQuestionIndex?: number;           // Last visited question (1-based)
+  savedMarkedQuestions?: string[];      // Question IDs marked for review
 }
 
 // Payload to send when saving an answer

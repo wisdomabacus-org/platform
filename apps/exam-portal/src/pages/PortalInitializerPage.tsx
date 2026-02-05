@@ -33,9 +33,14 @@ const PortalInitializerPage = () => {
   const examMetadata = useExamStore.use.examMetadata();
   const questions = useExamStore.use.questions();
   const timeLeft = useExamStore.use.timeLeft();
+  const isExamSubmitted = useExamStore.use.isExamSubmitted();
+  const hasHydrated = useExamStore.use._hasHydrated();
 
   // Check for existing persisted session on mount
   useEffect(() => {
+    // Wait for hydration before making routing decisions
+    if (!hasHydrated) return;
+
     // If we have a session token in URL, it's a new session request
     if (sessionTokenParam) {
       // Check if the persisted session matches the URL token
@@ -60,7 +65,14 @@ const PortalInitializerPage = () => {
     }
 
     // No session token in URL - check for persisted session
-    if (examMetadata && questions.length > 0 && timeLeft > 0 && sessionToken) {
+    if (examMetadata && questions.length > 0 && sessionToken) {
+      // Check if session is already over (expired or submitted)
+      if (timeLeft <= 0 || isExamSubmitted) {
+        console.log("Session already completed, redirecting to completion");
+        navigate("/complete");
+        return;
+      }
+
       // Resume the persisted session
       console.log("Resuming persisted exam session (no URL token)");
       navigate("/exam");
@@ -69,7 +81,7 @@ const PortalInitializerPage = () => {
 
     // No persisted session and no URL token - error
     navigate("/error?code=NO_SESSION&message=No+exam+session+found");
-  }, [sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, setSessionToken, resetExam, navigate]);
+  }, [hasHydrated, sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, isExamSubmitted, setSessionToken, resetExam, navigate]);
 
   // Call the initialization API only when we need to fetch
   const { data: response, isLoading, error } = useInitializeExamQuery({
@@ -107,22 +119,20 @@ const PortalInitializerPage = () => {
       endTime: examData.endTime,
     };
 
-    // Transform questions: ensure both `text` and `questionText` are set
-    const questions: Question[] = examData.questions.map((q) => ({
-      id: q.id,
-      questionText: q.questionText,
-      text: q.questionText, // Alias for compatibility
-      imageUrl: q.imageUrl,
-      options: q.options,
-      marks: q.marks,
-    }));
+    // Use the already-mapped questions directly from the API
+    // These include type, operations, operatorType for abacus vertical display
+    const mappedQuestions = examData.questions;
 
-    // Load into Zustand store with saved answers and time remaining for session resume
+    // Load into Zustand store with saved answers, time remaining, and resume state
     loadExam(
       metadata,
-      questions,
+      mappedQuestions,
       examData.savedAnswers, // Restore previous answers if any
-      examData.timeRemaining // Use remaining time for resumed sessions
+      examData.timeRemaining, // Use remaining time for resumed sessions
+      {
+        lastQuestionIndex: examData.lastQuestionIndex,
+        markedQuestions: examData.savedMarkedQuestions,
+      }
     );
 
     // If there are saved answers, go directly to exam (resume mode)

@@ -7,20 +7,21 @@ export const useExamTimer = () => {
   const timeLeft = useExamStore.use.timeLeft();
   const isExamSubmitted = useExamStore.use.isExamSubmitted();
   const decrementTime = useExamStore.use.decrementTime();
-  // ✅ Get the exam metadata to check if the exam is loaded
   const examMetadata = useExamStore.use.examMetadata();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout>();
+  // Calculate if exam should be running
+  const shouldRun = !!examMetadata && !isExamSubmitted && timeLeft > 0;
 
   useEffect(() => {
-    // ✅ Add a check for examMetadata.
-    // Do not start the timer until the exam is actually loaded.
-    if (!examMetadata || isExamSubmitted || timeLeft === 0) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      return;
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
+
+    // Only start interval if exam should be running
+    if (!shouldRun) return;
 
     intervalRef.current = setInterval(() => {
       decrementTime();
@@ -29,17 +30,17 @@ export const useExamTimer = () => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  // ✅ Add examMetadata to the dependency array
-  }, [decrementTime, isExamSubmitted, timeLeft, examMetadata]);
+    // Only depends on shouldRun, not timeLeft - prevents interval recreation every second
+  }, [shouldRun, decrementTime]);
 
-  // ✅ Check if the exam is loaded
   const isLoaded = examMetadata !== null;
 
   return {
     timeLeft,
-    // ✅ The exam is only "Time Up" if it has been loaded AND time is 0
+    // The exam is only "Time Up" if it has been loaded AND time is 0
     isTimeUp: isLoaded && timeLeft === 0 && !isExamSubmitted,
   };
 };

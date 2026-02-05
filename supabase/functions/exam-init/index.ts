@@ -23,6 +23,9 @@ interface InitExamResponse {
     end_time: number;
     questions: ExamQuestionForClient[];
     saved_answers: Record<string, number>; // questionId -> selectedOptionIndex
+    // Resume state fields (for richer session restoration)
+    last_question_index: number;
+    saved_marked_questions: string[];
 }
 
 serve(async (req: Request) => {
@@ -151,6 +154,10 @@ serve(async (req: Request) => {
             end_time: endTime,
             questions: formattedQuestions,
             saved_answers: savedAnswers,
+            // Resume state: defaults for now (frontend handles local persistence)
+            // In future, these could be stored in exam_sessions table
+            last_question_index: 1,
+            saved_marked_questions: [],
         };
 
         return jsonResponse({ success: true, data: response });

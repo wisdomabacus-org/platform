@@ -4,7 +4,15 @@ import { devtools, persist } from "zustand/middleware";
 import { createSelectors } from "@/lib/createSelectors";
 import type { Question, ExamMetadata } from "@/types/exam.types";
 
+interface ResumeState {
+  lastQuestionIndex?: number;
+  markedQuestions?: string[];
+}
+
 interface ExamState {
+  // Hydration flag
+  _hasHydrated: boolean;
+
   // State
   currentQuestion: number; // 1-based index for UI
   answers: Map<string, number>; // questionId (string) → selectedOptionIndex
@@ -23,7 +31,14 @@ interface ExamState {
   setAnswer: (questionId: string, answerIndex: number) => void;
   toggleMarkForReview: (questionId: string) => void;
   decrementTime: () => void;
-  loadExam: (metadata: ExamMetadata, questions: Question[], savedAnswers?: Record<string, number>, timeRemaining?: number) => void;
+  setTimeLeft: (time: number) => void;
+  loadExam: (
+    metadata: ExamMetadata,
+    questions: Question[],
+    savedAnswers?: Record<string, number>,
+    timeRemaining?: number,
+    resumeState?: ResumeState
+  ) => void;
   submitExam: () => void;
   resetExam: () => void;
 }
@@ -51,7 +66,7 @@ const ensureSet = (value: unknown): Set<string> => {
 // Type for persisted state (only data, no actions)
 type PersistedExamState = Pick<
   ExamState,
-  'currentQuestion' | 'answers' | 'markedQuestions' | 'timeLeft' |
+  '_hasHydrated' | 'currentQuestion' | 'answers' | 'markedQuestions' | 'timeLeft' |
   'isExamSubmitted' | 'examMetadata' | 'questions' | 'sessionToken'
 >;
 
@@ -61,6 +76,9 @@ const useExamStoreBase = create<ExamState>()(
   devtools(
     persist(
       (set, get) => ({
+        // Hydration flag - starts false, set to true after rehydration
+        _hasHydrated: false,
+
         // Initial State
         currentQuestion: 1,
         answers: new Map(),
@@ -115,16 +133,22 @@ const useExamStoreBase = create<ExamState>()(
             timeLeft: Math.max(0, state.timeLeft - 1),
           })),
 
-        loadExam: (metadata, questions, savedAnswers?, timeRemaining?) =>
+        setTimeLeft: (time) => set({ timeLeft: time }),
+
+        loadExam: (metadata, questions, savedAnswers?, timeRemaining?, resumeState?) =>
           set({
             examMetadata: metadata,
             questions,
             // Use time remaining if provided (for resume), otherwise calculate from duration
             timeLeft: timeRemaining ?? metadata.durationMinutes * 60,
-            currentQuestion: 1,
+            // Restore last question position if resuming
+            currentQuestion: resumeState?.lastQuestionIndex ?? 1,
             // Restore saved answers if provided
             answers: savedAnswers ? new Map(Object.entries(savedAnswers)) : new Map(),
-            markedQuestions: new Set(),
+            // Restore marked questions if resuming
+            markedQuestions: resumeState?.markedQuestions
+              ? new Set(resumeState.markedQuestions)
+              : new Set(),
             isExamSubmitted: false,
           }),
 
@@ -134,6 +158,7 @@ const useExamStoreBase = create<ExamState>()(
           // Clear session storage on reset
           sessionStorage.removeItem(STORAGE_KEY);
           set({
+            _hasHydrated: true, // Keep hydrated after reset
             currentQuestion: 1,
             answers: new Map(),
             markedQuestions: new Set(),
@@ -194,9 +219,23 @@ const useExamStoreBase = create<ExamState>()(
             // Convert arrays back to Map/Set
             state.answers = ensureMap(state.answers);
             state.markedQuestions = ensureSet(state.markedQuestions);
+            state._hasHydrated = true;
+
+            // Dev diagnostics for serialization issues
+            if (import.meta.env.DEV) {
+              if (!(state.answers instanceof Map)) {
+                console.error('[ExamStore] answers is not a Map after hydration!', state.answers);
+              }
+              if (!(state.markedQuestions instanceof Set)) {
+                console.error('[ExamStore] markedQuestions is not a Set after hydration!', state.markedQuestions);
+              }
+            }
+          } else {
+            // No persisted state - still mark as hydrated
+            useExamStoreBase.setState({ _hasHydrated: true });
           }
         },
-        // Only persist these fields (not functions)
+        // Only persist these fields (not functions, not _hasHydrated)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         partialize: (state) => ({
           currentQuestion: state.currentQuestion,

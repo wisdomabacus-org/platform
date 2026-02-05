@@ -207,6 +207,9 @@ export interface DbInitExamResponse {
         options: { index: number; text: string }[];
     }[];
     saved_answers: Record<string, number>;
+    // Resume state fields
+    last_question_index?: number;
+    saved_marked_questions?: string[];
 }
 
 export function mapInitExamResponse(response: DbInitExamResponse): InitializeExamResponse {
@@ -223,6 +226,9 @@ export function mapInitExamResponse(response: DbInitExamResponse): InitializeExa
         endTime: response.end_time,
         questions: response.questions.map(mapDbQuestionToQuestion),
         savedAnswers: response.saved_answers,
+        // Resume state fields
+        lastQuestionIndex: response.last_question_index,
+        savedMarkedQuestions: response.saved_marked_questions,
     };
 }
 
