@@ -357,6 +357,7 @@ export function mapDbPaymentToPayment(payment: DbPayment): Payment {
 
 /**
  * Map frontend profile update to database format
+ * Only includes fields with actual values to avoid Supabase update issues
  */
 export function mapUserToDbProfileUpdate(data: {
     parentName?: string;
@@ -368,17 +369,39 @@ export function mapUserToDbProfileUpdate(data: {
     phone?: string;
     dateOfBirth?: string;
 }): DbProfileUpdate {
-    return {
-        parent_name: data.parentName,
-        student_name: data.studentName,
-        student_grade: data.studentGrade,
-        school_name: data.schoolName,
-        city: data.city,
-        state: data.state,
-        phone: data.phone,
-        date_of_birth: data.dateOfBirth,
+    // Build update object, only including fields with actual values
+    const update: DbProfileUpdate = {
         updated_at: new Date().toISOString(),
     };
+
+    // Only add fields that have actual values (not undefined or empty)
+    if (data.parentName !== undefined && data.parentName !== '') {
+        update.parent_name = data.parentName;
+    }
+    if (data.studentName !== undefined && data.studentName !== '') {
+        update.student_name = data.studentName;
+    }
+    // studentGrade can be 0 (UKG), so only check for undefined
+    if (data.studentGrade !== undefined) {
+        update.student_grade = data.studentGrade;
+    }
+    if (data.schoolName !== undefined && data.schoolName !== '') {
+        update.school_name = data.schoolName;
+    }
+    if (data.city !== undefined && data.city !== '') {
+        update.city = data.city;
+    }
+    if (data.state !== undefined && data.state !== '') {
+        update.state = data.state;
+    }
+    if (data.phone !== undefined && data.phone !== '') {
+        update.phone = data.phone;
+    }
+    if (data.dateOfBirth !== undefined && data.dateOfBirth !== '') {
+        update.date_of_birth = data.dateOfBirth;
+    }
+
+    return update;
 }
 
 /**

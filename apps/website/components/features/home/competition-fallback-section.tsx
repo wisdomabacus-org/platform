@@ -101,7 +101,7 @@ export const CompetitionFallbackSection = () => {
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Student Grade</label>
                                     <select className="w-full h-12 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500">
                                         <option>Select Grade...</option>
-                                        <option>UKC (Pre-Junior)</option>
+                                        <option>UKG (Pre-Junior)</option>
                                         <option>Grade 1-3 (Junior)</option>
                                         <option>Grade 4-6 (Senior)</option>
                                         <option>Grade 7-8 (Advanced)</option>

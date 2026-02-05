@@ -150,7 +150,7 @@ export function BookDemoModal() {
                                                 onChange={(e) => setFormData({ ...formData, grade: Number(e.target.value) })}
                                                 style={{ height: '2.5rem' /* matching standard Input height if needed, usually h-10 is 2.5rem */ }}
                                             >
-                                                <option value={0}>UKC</option>
+                                                <option value={0}>UKG</option>
                                                 {[1, 2, 3, 4, 5, 6, 7, 8].map(g => (
                                                     <option key={g} value={g}>Grade {g}</option>
                                                 ))}

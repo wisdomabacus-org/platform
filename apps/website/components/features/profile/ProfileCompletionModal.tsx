@@ -140,7 +140,7 @@ export function ProfileCompletionModal() {
                                     onChange={handleInputChange}
                                     className="flex h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm text-slate-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:bg-white transition-all duration-200"
                                 >
-                                    <option value={0}>UKC</option>
+                                    <option value={0}>UKG</option>
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(grade => (
                                         <option key={grade} value={grade}>Grade {grade}</option>
                                     ))}

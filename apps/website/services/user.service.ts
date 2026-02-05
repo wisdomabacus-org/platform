@@ -74,6 +74,7 @@ export const userService = {
     } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
+      console.error('Profile update failed: Not authenticated', authError);
       throw new Error('Not authenticated');
     }
 
@@ -81,16 +82,21 @@ export const userService = {
     const updateData = mapUserToDbProfileUpdate(data);
 
     // Check if all required fields are present to mark profile as complete
+    // Note: studentGrade can be 0 (UKG), so we strictly check for undefined/null
     const isComplete = !!(
       data.parentName &&
       data.studentName &&
-      data.studentGrade &&
+      (data.studentGrade !== undefined && data.studentGrade !== null) &&
       data.schoolName &&
       data.city &&
       data.state &&
       data.phone &&
       data.dateOfBirth
     );
+
+    console.log('Updating profile for user:', authUser.id);
+    console.log('Update data:', updateData);
+    console.log('Is complete:', isComplete);
 
     // Update profile
     const { data: profile, error } = await supabase
@@ -104,8 +110,29 @@ export const userService = {
       .single();
 
     if (error) {
+      console.error('Profile update error:', error);
+
+      // Provide more helpful error messages based on error code
+      if (error.code === '23514') {
+        // Check constraint violation
+        throw new Error('Invalid data: Please check that all fields have valid values (Grade should be between UKG and 12)');
+      } else if (error.code === '42501') {
+        // RLS policy violation
+        throw new Error('Permission denied: You can only update your own profile');
+      } else if (error.code === 'PGRST116') {
+        // No rows returned - profile might not exist
+        throw new Error('Profile not found. Please contact support.');
+      }
+
       throw new Error(`Failed to update profile: ${error.message}`);
     }
+
+    if (!profile) {
+      console.error('Profile update returned no data');
+      throw new Error('Failed to update profile: No data returned');
+    }
+
+    console.log('Profile updated successfully:', profile);
 
     return {
       user: mapDbProfileToUser(profile),

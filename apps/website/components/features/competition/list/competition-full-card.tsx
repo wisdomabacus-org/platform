@@ -131,7 +131,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                         <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100">
                             <GraduationCap className="h-4 w-4 text-orange-500" />
-                            <span className="font-medium">Grade {data.minGrade === 0 ? 'UKC' : data.minGrade} - {data.maxGrade}</span>
+                            <span className="font-medium">Grade {data.minGrade === 0 ? 'UKG' : data.minGrade} - {data.maxGrade}</span>
                         </div>
                         <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100">
                             <Clock className="h-4 w-4 text-blue-500" />
