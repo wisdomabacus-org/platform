@@ -2,6 +2,7 @@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import type { Question } from "@/types/exam.types";
+import { cn } from "@/lib/utils";
 
 interface QuestionContentProps {
   question: Question;
@@ -12,42 +13,51 @@ interface QuestionContentProps {
 }
 
 /**
- * Parse question text to extract operands for vertical display
- * Formats like: "2 + 3 + 4" or "9 - 3 - 2" or "15 + 23 - 12"
+ * Check if question should display as vertical abacus-style
+ * Returns the operations array if available, or parses from questionText as fallback
  */
-function parseQuestionForVerticalDisplay(questionText: string): {
-  operands: { value: number; isNegative: boolean }[];
-  isStackable: boolean;
+function getVerticalDisplayData(question: Question): {
+  operations: number[];
+  operatorType: string | null;
+  isAbacus: boolean;
 } {
-  // Check if the question contains + or - signs (abacus-style operations)
-  if (!questionText.match(/[\+\-]/)) {
-    return { operands: [], isStackable: false };
+  // If we have the operations array from the API, use it directly
+  if (question.operations && Array.isArray(question.operations) && question.operations.length >= 2) {
+    return {
+      operations: question.operations,
+      operatorType: question.operatorType || null,
+      isAbacus: true,
+    };
+  }
+
+  // Fallback: try to parse from questionText for older questions
+  // Format: "2 + 3 + 4" or "9 - 3 - 2" or "15 + 23 - 12"
+  if (!question.questionText || !question.questionText.match(/[\+\-]/)) {
+    return { operations: [], operatorType: null, isAbacus: false };
   }
 
   try {
-    // Split by + and - while keeping the operators
-    const parts: { value: number; isNegative: boolean }[] = [];
-
-    // Replace - with +- for easier splitting
-    const normalized = questionText.replace(/\s*-\s*/g, " + -").replace(/\s+/g, " ");
+    const parts: number[] = [];
+    // Replace - with +- for easier splitting, then split by +
+    const normalized = question.questionText.replace(/\s*-\s*/g, " + -").replace(/\s+/g, " ");
     const tokens = normalized.split(/\s*\+\s*/).filter(t => t.trim());
 
     for (const token of tokens) {
       const trimmed = token.trim();
       if (!trimmed) continue;
-
-      const isNegative = trimmed.startsWith("-");
-      const numStr = isNegative ? trimmed.slice(1).trim() : trimmed;
-      const value = parseInt(numStr, 10);
-
+      const value = parseInt(trimmed, 10);
       if (!isNaN(value)) {
-        parts.push({ value, isNegative });
+        parts.push(value);
       }
     }
 
-    return { operands: parts, isStackable: parts.length >= 2 };
+    return {
+      operations: parts,
+      operatorType: 'mixed',
+      isAbacus: parts.length >= 2,
+    };
   } catch {
-    return { operands: [], isStackable: false };
+    return { operations: [], operatorType: null, isAbacus: false };
   }
 }
 
@@ -58,7 +68,15 @@ export const QuestionContent = ({
   selectedAnswer,
   onAnswerSelect,
 }: QuestionContentProps) => {
-  const { operands, isStackable } = parseQuestionForVerticalDisplay(question.questionText);
+  const { operations, operatorType, isAbacus } = getVerticalDisplayData(question);
+
+  // Get operator symbol for multiplication/division display
+  const getOperatorSymbol = (type: string | null, isLast: boolean) => {
+    if (!isLast) return null;
+    if (type === 'multiplication') return '×';
+    if (type === 'division') return '÷';
+    return null;
+  };
 
   return (
     <main className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -70,7 +88,7 @@ export const QuestionContent = ({
           </p>
 
           {/* Display question content */}
-          {isStackable && operands.length > 0 ? (
+          {isAbacus && operations.length > 0 ? (
             // Vertical stacked display for abacus-style questions
             <div className="flex flex-col items-center py-6">
               <div className="text-sm text-muted-foreground mb-4">
@@ -86,22 +104,40 @@ export const QuestionContent = ({
 
                 {/* Stacked Numbers */}
                 <div className="flex flex-col items-end space-y-2 font-mono text-2xl font-bold">
-                  {operands.map((op, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-end gap-2 min-w-[100px]"
-                    >
-                      {/* Show sign for negative numbers (after the first) */}
-                      {idx > 0 && (
-                        <span className={`text-lg ${op.isNegative ? 'text-red-500' : 'text-green-500'}`}>
-                          {op.isNegative ? '−' : '+'}
+                  {operations.map((num, idx) => {
+                    const isLast = idx === operations.length - 1;
+                    const opSymbol = getOperatorSymbol(operatorType, isLast);
+                    const isNegative = num < 0;
+                    const displayValue = Math.abs(num);
+
+                    return (
+                      <div
+                        key={idx}
+                        className="relative flex items-center justify-end gap-2 min-w-[100px]"
+                      >
+                        {/* Operator for Multiplication/Division on last row */}
+                        {opSymbol && (
+                          <span className="absolute -left-6 text-muted-foreground font-normal">
+                            {opSymbol}
+                          </span>
+                        )}
+
+                        {/* Sign for abacus operations (after first row) */}
+                        {!opSymbol && idx > 0 && (
+                          <span className={cn(
+                            "text-lg",
+                            isNegative ? 'text-red-500' : 'text-green-500'
+                          )}>
+                            {isNegative ? '−' : '+'}
+                          </span>
+                        )}
+
+                        <span className="tabular-nums">
+                          {displayValue}
                         </span>
-                      )}
-                      <span className="tabular-nums">
-                        {op.value}
-                      </span>
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Answer Line */}
@@ -115,7 +151,7 @@ export const QuestionContent = ({
           ) : (
             // Standard text display for non-abacus questions
             <p className="text-lg font-medium leading-relaxed">
-              {question.questionText}
+              {question.questionText || 'No question text available'}
             </p>
           )}
 

@@ -70,6 +70,9 @@ serve(async (req: Request) => {
         question_text,
         image_url,
         marks,
+        type,
+        operations,
+        operator_type,
         question_options (
           option_index,
           text
@@ -91,12 +94,18 @@ serve(async (req: Request) => {
                 question_text: string;
                 image_url?: string;
                 marks: number;
+                type?: string;
+                operations?: number[];
+                operator_type?: string;
                 question_options: { option_index: number; text: string }[];
             }) => ({
                 id: q.id,
                 question_text: q.question_text,
                 image_url: q.image_url,
                 marks: q.marks,
+                type: q.type || 'text',
+                operations: q.operations || null,
+                operator_type: q.operator_type || null,
                 options: (q.question_options || [])
                     .sort((a, b) => a.option_index - b.option_index)
                     .map((opt) => ({

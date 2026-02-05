@@ -9,6 +9,9 @@ export interface ExamOption {
   text: string;        // option text
 }
 
+export type QuestionType = 'abacus' | 'text' | 'image';
+export type OperatorType = 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed';
+
 export interface Question {
   id: string;                 // question id (stringified ObjectId)
   questionText: string;       // matches backend questionBank.questions.questionText
@@ -16,6 +19,10 @@ export interface Question {
   imageUrl?: string | null;   // optional image
   options: ExamOption[];
   marks: number;              // marks per question
+  // Abacus-specific fields for vertical display
+  type?: QuestionType;        // question type (abacus, text, image)
+  operations?: number[] | null; // Array of numbers for vertical display
+  operatorType?: OperatorType | null; // Type of operation for display
 }
 
 // Core exam metadata returned by initializeExam

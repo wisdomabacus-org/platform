@@ -42,12 +42,19 @@ export interface QuestionOption {
     text: string;
 }
 
+export type QuestionType = 'abacus' | 'text' | 'image';
+export type OperatorType = 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed';
+
 export interface ExamQuestionForClient {
     id: string;
     question_text: string;
     image_url?: string;
     options: { index: number; text: string }[];
     marks: number;
+    // Abacus-specific fields
+    type?: QuestionType;
+    operations?: number[] | null;  // Array of numbers for vertical display
+    operator_type?: OperatorType | null;
 }
 
 // ==========================================

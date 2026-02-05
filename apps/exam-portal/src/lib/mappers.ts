@@ -201,6 +201,9 @@ export interface DbInitExamResponse {
         question_text: string;
         image_url?: string;
         marks: number;
+        type?: string;
+        operations?: number[] | null;
+        operator_type?: string | null;
         options: { index: number; text: string }[];
     }[];
     saved_answers: Record<string, number>;
@@ -228,6 +231,9 @@ export function mapDbQuestionToQuestion(q: {
     question_text: string;
     image_url?: string;
     marks: number;
+    type?: string;
+    operations?: number[] | null;
+    operator_type?: string | null;
     options: { index: number; text: string }[];
 }): Question {
     return {
@@ -236,6 +242,10 @@ export function mapDbQuestionToQuestion(q: {
         text: q.question_text, // Alias
         imageUrl: q.image_url || null,
         marks: q.marks,
+        // Abacus-specific fields
+        type: (q.type as Question['type']) || 'text',
+        operations: q.operations || null,
+        operatorType: (q.operator_type as Question['operatorType']) || null,
         options: q.options.map(o => ({
             id: `${q.id}_${o.index}`, // Virtual ID since backend doesn't return option IDs
             index: o.index,
