@@ -27,98 +27,113 @@ const generateRandomNumber = (digits: number, allowZero: boolean = false): numbe
 
 const generateQuestions = (config: WorksheetConfig): Question[] => {
     const questions: Question[] = [];
+    let zeroCount = 0;
+    const maxZeros = Math.max(1, Math.floor(config.questions * 0.05)); // Allow at most 5% zeros
 
     for (let i = 1; i <= config.questions; i++) {
         const operator = config.operators[Math.floor(Math.random() * config.operators.length)];
-        const numbers: number[] = [];
+        let numbers: number[] = [];
         let answer = 0;
+        let attempts = 0;
+        const maxAttempts = 10;
 
         // Logic for Addition/Subtraction (Vertical Stack)
         if (operator === "addition" || operator === "subtraction") {
-            // For subtraction mode, we need to be smarter about generating numbers
-            // to ensure the final answer is NEVER negative
-
             const maxNum = Math.pow(10, config.digits) - 1;
             const minNum = Math.pow(10, config.digits - 1);
 
-            // Strategy: Generate all numbers first, then adjust
-            // For subtraction: Start with a larger number, then carefully subtract
+            do {
+                numbers = [];
+                answer = 0;
+                attempts++;
 
-            if (operator === "subtraction") {
-                // For pure subtraction: we generate a mix of + and - operations
-                // ensuring running total never goes negative
+                if (operator === "subtraction") {
+                    // IMPROVED SUBTRACTION LOGIC to avoid zero answers
 
-                // Start with a significantly larger first number
-                // This gives us "room" to subtract
-                let firstNum = generateRandomNumber(config.digits);
-                // Make first number larger for subtraction (at least 50% more than average)
-                firstNum = Math.max(firstNum, Math.floor(maxNum * 0.6));
-                numbers.push(firstNum);
-                let runningSum = firstNum;
+                    // Start with a LARGE first number (80% of max range)
+                    // This gives us plenty of "room" to subtract without reaching zero
+                    let firstNum = generateRandomNumber(config.digits);
+                    firstNum = Math.max(firstNum, Math.floor(maxNum * 0.8));
+                    numbers.push(firstNum);
+                    let runningSum = firstNum;
 
-                for (let r = 1; r < config.rows; r++) {
-                    // Decide if this row should subtract or add
-                    // Use weighted probability: 70% subtract, 30% add
-                    let shouldSubtract = Math.random() < 0.7;
+                    // Calculate minimum final answer we want to target
+                    // We want at least 10% of the first number as the answer
+                    const minimumFinalAnswer = Math.max(minNum, Math.floor(firstNum * 0.1));
 
-                    if (shouldSubtract) {
-                        // Calculate max we can safely subtract
-                        // We need to reserve room for remaining rows to potentially add back
-                        const remainingRows = config.rows - r - 1;
-                        const reserveAmount = remainingRows > 0 ? minNum * remainingRows : 0;
-                        const maxSubtractable = Math.max(0, runningSum - reserveAmount);
+                    for (let r = 1; r < config.rows; r++) {
+                        const remainingRows = config.rows - r;
 
-                        if (maxSubtractable < minNum) {
-                            // Can't subtract enough, switch to addition
-                            shouldSubtract = false;
-                        } else {
-                            // Generate a number we can safely subtract
-                            const subNum = Math.floor(Math.random() * (maxSubtractable - minNum + 1)) + minNum;
-                            numbers.push(-subNum);
-                            runningSum -= subNum;
-                            continue;
+                        // Decide operation based on current running sum
+                        // If running sum is already close to our minimum, add instead of subtract
+                        const safetyMargin = minNum * remainingRows + minimumFinalAnswer;
+                        const canSubtract = runningSum > safetyMargin;
+
+                        // Use weighted probability: 60% subtract if possible, otherwise add
+                        let shouldSubtract = canSubtract && Math.random() < 0.6;
+
+                        if (shouldSubtract) {
+                            // Calculate max we can subtract while maintaining minimum answer
+                            const maxSubtractable = runningSum - safetyMargin;
+
+                            if (maxSubtractable >= minNum) {
+                                // Generate a random subtraction that doesn't go too low
+                                // Use smaller range to avoid hitting exactly zero
+                                const subtractRange = Math.min(maxSubtractable, maxNum * 0.5);
+                                const subNum = Math.floor(Math.random() * (subtractRange - minNum + 1)) + minNum;
+                                numbers.push(-subNum);
+                                runningSum -= subNum;
+                                continue;
+                            }
+                        }
+
+                        // Addition case - add to maintain positive answers
+                        const addNum = generateRandomNumber(config.digits);
+                        numbers.push(addNum);
+                        runningSum += addNum;
+                    }
+
+                    answer = runningSum;
+                } else {
+                    // Pure addition - simple case
+                    let sum = 0;
+                    for (let r = 0; r < config.rows; r++) {
+                        const num = generateRandomNumber(config.digits);
+                        numbers.push(num);
+                        sum += num;
+                    }
+                    answer = sum;
+                }
+
+                // Safety check - if answer is negative, convert all to positive
+                if (answer < 0) {
+                    for (let idx = 0; idx < numbers.length; idx++) {
+                        if (numbers[idx] < 0) {
+                            numbers[idx] = Math.abs(numbers[idx]);
                         }
                     }
-
-                    // Addition case
-                    const addNum = generateRandomNumber(config.digits);
-                    numbers.push(addNum);
-                    runningSum += addNum;
+                    answer = numbers.reduce((a, b) => a + b, 0);
                 }
 
-                answer = runningSum;
-            } else {
-                // Pure addition - simple case
-                let sum = 0;
-                for (let r = 0; r < config.rows; r++) {
-                    const num = generateRandomNumber(config.digits);
-                    numbers.push(num);
-                    sum += num;
-                }
-                answer = sum;
-            }
+            } while (
+                answer === 0 &&
+                zeroCount >= maxZeros &&
+                attempts < maxAttempts
+            );
 
-            // Final safety check - if answer is still negative, flip signs
-            if (answer < 0) {
-                // This shouldn't happen with our logic, but as a fallback:
-                // Convert all negatives to positives
-                for (let idx = 0; idx < numbers.length; idx++) {
-                    if (numbers[idx] < 0) {
-                        numbers[idx] = Math.abs(numbers[idx]);
-                    }
-                }
-                answer = numbers.reduce((a, b) => a + b, 0);
-            }
+            if (answer === 0) zeroCount++;
         }
         else if (operator === "multiplication") {
+            // Multiplication - ensure neither operand is zero
             const a = generateRandomNumber(config.digits);
-            const b = generateRandomNumber(Math.min(config.digits, 2)); // Smaller multiplier
+            const b = generateRandomNumber(Math.min(config.digits, 2));
             numbers.push(a);
             numbers.push(b);
             answer = a * b;
         }
         else if (operator === "division") {
-            const divisor = generateRandomNumber(1) || 1; // Avoid zero
+            // Division - ensure divisor is not zero and result is clean
+            const divisor = generateRandomNumber(1) || 1;
             const quotient = generateRandomNumber(config.digits);
             const dividend = divisor * quotient;
             numbers.push(dividend);
@@ -130,6 +145,7 @@ const generateQuestions = (config: WorksheetConfig): Question[] => {
     }
     return questions;
 };
+
 
 export const generatePDF = async (config: WorksheetConfig) => {
     const doc = new jsPDF({

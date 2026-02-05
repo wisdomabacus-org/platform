@@ -2,7 +2,7 @@
 // Keep exam session alive and check status
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createServiceClient, requireAuth } from "../_shared/supabase.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
 import { handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
 
 interface HeartbeatRequest {
@@ -22,9 +22,6 @@ serve(async (req: Request) => {
     if (corsResponse) return corsResponse;
 
     try {
-        const user = await requireAuth(req);
-        const supabase = createServiceClient();
-
         const body: HeartbeatRequest = await req.json();
         const { session_token } = body;
 
@@ -32,7 +29,11 @@ serve(async (req: Request) => {
             return errorResponse("session_token is required", 400);
         }
 
-        // Get session
+        // For heartbeat, we need special handling since the session might be expired
+        // but we still want to return status info (not throw an error)
+        const supabase = createServiceClient();
+
+        // Get session directly (don't use authenticateBySessionToken as it throws on expired)
         const { data: session, error: sessionError } = await supabase
             .from("exam_sessions")
             .select("*")
@@ -52,24 +53,35 @@ serve(async (req: Request) => {
             });
         }
 
-        // Verify ownership
-        if (session.user_id !== user.id) {
-            return errorResponse("You don't have access to this session", 403);
-        }
-
         const now = Date.now();
         const endTime = new Date(session.end_time).getTime();
         const timeRemaining = Math.max(0, Math.floor((endTime - now) / 1000));
         const answeredCount = Object.keys(session.answers || {}).length;
 
-        // Check if time expired and session should be auto-submitted
-        if (timeRemaining <= 0 && session.status === "in-progress") {
-            // Trigger auto-submit by calling exam-submit internally
-            // For now, we mark it for client to handle
+        // Check if session is already submitted
+        if (session.status === "submitted" || session.status === "graded") {
             const response: HeartbeatResponse = {
                 is_active: false,
                 time_remaining: 0,
-                answered_count,
+                answered_count: answeredCount,
+                status: session.status,
+                should_auto_submit: false,
+            };
+            return jsonResponse({ success: true, data: response });
+        }
+
+        // Check if time expired and session should be auto-submitted
+        if (timeRemaining <= 0 && session.status === "in-progress") {
+            // Mark session as expired
+            await supabase
+                .from("exam_sessions")
+                .update({ status: "expired" })
+                .eq("id", session.id);
+
+            const response: HeartbeatResponse = {
+                is_active: false,
+                time_remaining: 0,
+                answered_count: answeredCount,
                 status: "expired",
                 should_auto_submit: true,
             };
@@ -79,8 +91,8 @@ serve(async (req: Request) => {
         // Session still active
         const response: HeartbeatResponse = {
             is_active: session.status === "in-progress",
-            time_remaining,
-            answered_count,
+            time_remaining: timeRemaining,
+            answered_count: answeredCount,
             status: session.status,
             should_auto_submit: false,
         };
@@ -88,9 +100,15 @@ serve(async (req: Request) => {
         return jsonResponse({ success: true, data: response });
     } catch (error) {
         console.error("exam-heartbeat error:", error);
-        if (error instanceof Error && error.message === "Unauthorized") {
-            return errorResponse("Unauthorized", 401);
+
+        // Handle specific session errors
+        if (error instanceof Error) {
+            const message = error.message;
+            if (message === "Session token is required") {
+                return errorResponse(message, 400);
+            }
         }
+
         return errorResponse("Internal server error", 500);
     }
 });

@@ -2,7 +2,7 @@
 // Initialize exam portal - load questions for active session
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createServiceClient, requireAuth } from "../_shared/supabase.ts";
+import { createServiceClient, authenticateBySessionToken } from "../_shared/supabase.ts";
 import { handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import type { ExamQuestionForClient } from "../_shared/types.ts";
 
@@ -30,9 +30,6 @@ serve(async (req: Request) => {
     if (corsResponse) return corsResponse;
 
     try {
-        const user = await requireAuth(req);
-        const supabase = createServiceClient();
-
         const body: InitExamRequest = await req.json();
         const { session_token } = body;
 
@@ -40,38 +37,13 @@ serve(async (req: Request) => {
             return errorResponse("session_token is required", 400);
         }
 
-        // Get exam session
-        const { data: session, error: sessionError } = await supabase
-            .from("exam_sessions")
-            .select("*")
-            .eq("session_token", session_token)
-            .single();
+        // Authenticate via session token (no JWT required for exam portal)
+        // This verifies the session is valid and gets the user/session data
+        const { user, session } = await authenticateBySessionToken(session_token);
+        const supabase = createServiceClient();
 
-        if (sessionError || !session) {
-            return errorResponse("Session not found or expired", 404);
-        }
-
-        // Verify session ownership
-        if (session.user_id !== user.id) {
-            return errorResponse("You don't have access to this session", 403);
-        }
-
-        // Check session status
-        if (session.status === "submitted") {
-            return errorResponse("This exam has already been submitted", 400);
-        }
-
-        // Check if expired
-        const now = Date.now();
-        const endTime = new Date(session.end_time).getTime();
-        if (now > endTime) {
-            // Mark as expired
-            await supabase
-                .from("exam_sessions")
-                .update({ status: "expired" })
-                .eq("id", session.id);
-            return errorResponse("Exam session has expired", 400);
-        }
+        // The session is already validated by authenticateBySessionToken
+        // It checks: existence, status, and time-based expiration
 
         // Get submission to find question bank ID
         const { data: submission, error: subError } = await supabase
@@ -149,6 +121,9 @@ serve(async (req: Request) => {
             }
         }
 
+        // Calculate time remaining
+        const now = Date.now();
+        const endTime = new Date(session.end_time).getTime();
         const timeRemaining = Math.max(
             0,
             Math.floor((endTime - now) / 1000)
@@ -172,9 +147,29 @@ serve(async (req: Request) => {
         return jsonResponse({ success: true, data: response });
     } catch (error) {
         console.error("exam-init error:", error);
-        if (error instanceof Error && error.message === "Unauthorized") {
-            return errorResponse("Unauthorized", 401);
+
+        // Handle specific session errors with appropriate status codes
+        if (error instanceof Error) {
+            const message = error.message;
+
+            if (message === "Session token is required") {
+                return errorResponse(message, 400);
+            }
+            if (message === "Session not found or expired") {
+                return errorResponse(message, 404);
+            }
+            if (message === "Session already submitted") {
+                return errorResponse("This exam has already been submitted", 400);
+            }
+            if (message === "Session has expired") {
+                return errorResponse("Exam session has expired", 400);
+            }
+            if (message === "Unauthorized") {
+                return errorResponse("Unauthorized", 401);
+            }
         }
+
         return errorResponse("Internal server error", 500);
     }
 });
+

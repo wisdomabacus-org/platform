@@ -2,7 +2,7 @@
 // Submit exam - calculate score and finalize submission
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createServiceClient, requireAuth } from "../_shared/supabase.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
 import { handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
 
 interface SubmitExamRequest {
@@ -26,9 +26,6 @@ serve(async (req: Request) => {
     if (corsResponse) return corsResponse;
 
     try {
-        const user = await requireAuth(req);
-        const supabase = createServiceClient();
-
         const body: SubmitExamRequest = await req.json();
         const { session_token } = body;
 
@@ -36,7 +33,10 @@ serve(async (req: Request) => {
             return errorResponse("session_token is required", 400);
         }
 
-        // Get session with lock check
+        const supabase = createServiceClient();
+
+        // Get session with lock check (we don't use authenticateBySessionToken 
+        // because submit should work even for expired sessions)
         const { data: session, error: sessionError } = await supabase
             .from("exam_sessions")
             .select("*")
@@ -45,11 +45,6 @@ serve(async (req: Request) => {
 
         if (sessionError || !session) {
             return errorResponse("Session not found or expired", 404);
-        }
-
-        // Verify ownership
-        if (session.user_id !== user.id) {
-            return errorResponse("You don't have access to this session", 403);
         }
 
         // Check if already submitted
@@ -230,9 +225,18 @@ serve(async (req: Request) => {
         }
     } catch (error) {
         console.error("exam-submit error:", error);
-        if (error instanceof Error && error.message === "Unauthorized") {
-            return errorResponse("Unauthorized", 401);
+
+        // Handle specific errors
+        if (error instanceof Error) {
+            const message = error.message;
+            if (message === "Session token is required") {
+                return errorResponse(message, 400);
+            }
+            if (message === "Session not found or expired") {
+                return errorResponse(message, 404);
+            }
         }
+
         return errorResponse(
             error instanceof Error ? error.message : "Internal server error",
             500

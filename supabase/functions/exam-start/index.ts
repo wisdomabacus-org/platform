@@ -122,8 +122,68 @@ serve(async (req: Request) => {
                 return errorResponse("Your previous session has expired", 410);
             }
 
-            // No valid session but submission exists in-progress state - treat as error
-            return errorResponse("Previous exam session was not properly closed", 409);
+            // No valid session but submission exists in-progress state
+            // Instead of throwing error, create a new session for this submission
+            // This improves UX - user can continue their exam
+
+            console.log("Creating new session for existing in-progress submission:", existingSubmission.id);
+
+            // Get the original exam details to recreate the session
+            const { data: existingSubDetails, error: subDetailsError } = await supabase
+                .from("submissions")
+                .select("exam_snapshot, total_questions, started_at")
+                .eq("id", existingSubmission.id)
+                .single();
+
+            if (subDetailsError || !existingSubDetails) {
+                return errorResponse("Failed to retrieve submission details", 500);
+            }
+
+            const examSnapshot = existingSubDetails.exam_snapshot;
+            const durationMinutes = examSnapshot?.durationMinutes || 60;
+
+            // Calculate new session times
+            const startTime = new Date();
+            const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+            const expiresAt = new Date(endTime.getTime() + 15 * 60 * 1000); // 15 min buffer
+            const sessionToken = crypto.randomUUID();
+
+            // Create new exam session for existing submission
+            const { error: newSessionError } = await supabase.from("exam_sessions").insert({
+                session_token: sessionToken,
+                user_id: user.id,
+                exam_type,
+                exam_id,
+                submission_id: existingSubmission.id,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                duration_minutes: durationMinutes,
+                answers: {}, // Start fresh with answers (previous ones weren't saved)
+                status: "in-progress",
+                is_locked: false,
+                expires_at: expiresAt.toISOString(),
+            });
+
+            if (newSessionError) {
+                console.error("Session creation error:", newSessionError);
+                return errorResponse("Failed to create exam session", 500);
+            }
+
+            const resumeResponse: StartExamResponse = {
+                session_token: sessionToken,
+                submission_id: existingSubmission.id,
+                exam_title: examSnapshot?.title || "Exam",
+                duration_minutes: durationMinutes,
+                total_questions: existingSubDetails.total_questions || 0,
+                start_time: startTime.getTime(),
+                end_time: endTime.getTime(),
+            };
+
+            return jsonResponse({
+                success: true,
+                data: resumeResponse,
+                message: "Session recreated for existing submission",
+            });
         }
 
         // Validate access based on exam type
