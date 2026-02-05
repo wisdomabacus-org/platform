@@ -1,34 +1,59 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useExamStore } from "../store/examStore";
-import { useToast } from "@/hooks/use-toast";
+import { examApi } from "../api/exam.service";
+import { useMutation } from "@tanstack/react-query";
+import type { SubmitExamResponse } from "@/types/exam.types";
+import type { ApiResponse } from "@/types/api.types";
 
 export const useExamSubmit = () => {
   const questions = useExamStore.use.questions();
   const answers = useExamStore.use.answers();
   const markedQuestions = useExamStore.use.markedQuestions();
-  const submitExam = useExamStore.use.submitExam();
-  const { toast } = useToast();
+  const submitExamStore = useExamStore.use.submitExam();
 
-  const handleSubmit = useCallback(() => {
-    const score = Array.from(answers.entries()).reduce((acc, [qId, ansIdx]) => {
-      const question = questions.find((q) => q.id === qId);
-      return acc + (question?.correctAnswer === ansIdx ? 1 : 0);
-    }, 0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    submitExam();
+  // Mutation to call the exam-submit Edge Function
+  const submitMutation = useMutation<
+    ApiResponse<SubmitExamResponse>,
+    Error,
+    void
+  >({
+    mutationFn: () => examApi.submitExam(),
+    onSuccess: () => {
+      // Mark exam as submitted in local store
+      submitExamStore();
+    },
+    onError: (error) => {
+      console.error("Failed to submit exam:", error);
+      setIsSubmitting(false);
+    },
+  });
 
-    toast({
-      title: "Exam Submitted Successfully!",
-      description: `You scored ${score} out of ${questions.length}`,
-      duration: 10000,
-    });
-  }, [answers, questions, submitExam, toast]);
+  const handleSubmit = useCallback(async (): Promise<SubmitExamResponse | null> => {
+    setIsSubmitting(true);
+    try {
+      const result = await submitMutation.mutateAsync();
+      return result.data;
+    } catch (error) {
+      console.error("Submit error:", error);
+      return null;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [submitMutation]);
+
+  // Safely get counts
+  const answeredCount = answers instanceof Map ? answers.size : 0;
+  const markedCount = markedQuestions instanceof Set ? markedQuestions.size : 0;
 
   return {
     handleSubmit,
-    answeredCount: answers.size,
-    unansweredCount: questions.length - answers.size,
-    markedCount: markedQuestions.size,
+    isSubmitting: isSubmitting || submitMutation.isPending,
+    answeredCount,
+    unansweredCount: questions.length - answeredCount,
+    markedCount,
     totalQuestions: questions.length,
+    error: submitMutation.error,
   };
 };

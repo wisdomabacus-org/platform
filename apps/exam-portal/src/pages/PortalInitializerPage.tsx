@@ -28,6 +28,7 @@ const PortalInitializerPage = () => {
 
   const loadExam = useExamStore.use.loadExam();
   const setSessionToken = useExamStore.use.setSessionToken();
+  const resetExam = useExamStore.use.resetExam();
   const sessionToken = useExamStore.use.sessionToken();
   const examMetadata = useExamStore.use.examMetadata();
   const questions = useExamStore.use.questions();
@@ -45,7 +46,14 @@ const PortalInitializerPage = () => {
         return;
       }
 
-      // New session or different token - fetch from API
+      // DIFFERENT session token OR no persisted session - this is a NEW exam
+      // We must reset the old session data before fetching new one
+      if (sessionToken && sessionToken !== sessionTokenParam) {
+        console.log("New session token detected, clearing old session data");
+        resetExam();
+      }
+
+      // Set new session token and fetch from API
       setSessionToken(sessionTokenParam);
       setShouldFetch(true);
       return;
@@ -61,7 +69,7 @@ const PortalInitializerPage = () => {
 
     // No persisted session and no URL token - error
     navigate("/error?code=NO_SESSION&message=No+exam+session+found");
-  }, [sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, setSessionToken, navigate]);
+  }, [sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, setSessionToken, resetExam, navigate]);
 
   // Call the initialization API only when we need to fetch
   const { data: response, isLoading, error } = useInitializeExamQuery({

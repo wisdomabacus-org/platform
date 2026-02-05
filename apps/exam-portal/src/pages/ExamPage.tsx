@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useExamStore } from "@/features/exam/store/examStore";
 import { useExamTimer } from "@/features/exam/hooks/useExamTimer";
 import { useExamNavigation } from "@/features/exam/hooks/useExamNavigation";
+import { useExamSubmit } from "@/features/exam/hooks/useExamSubmit";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSubmitAnswerMutation } from "@/features/exam/api/exam.queries";
 
@@ -50,6 +51,14 @@ const ExamPage = () => {
     handlePrevious,
     handleQuestionSelect,
   } = useExamNavigation();
+
+  const {
+    handleSubmit: submitExamToApi,
+    isSubmitting,
+    answeredCount,
+    unansweredCount,
+    markedCount,
+  } = useExamSubmit();
 
   // API mutation for saving answers
   const { mutate: submitAnswerToBackend } = useSubmitAnswerMutation({
@@ -164,12 +173,20 @@ const ExamPage = () => {
     setShowSubmitDialog(true);
   }, []);
 
-  // Confirm submission (will be wired to useExamSubmit hook)
-  const handleConfirmSubmit = useCallback(() => {
-    // TODO: Wire this to useExamSubmit mutation in next step
-    console.log("Submitting exam...");
-    navigate("/complete");
-  }, [navigate]);
+  // Confirm submission - calls the exam-submit API
+  const handleConfirmSubmit = useCallback(async () => {
+    setShowSubmitDialog(false);
+
+    const result = await submitExamToApi();
+
+    if (result?.submissionId) {
+      // Navigate to completion page with submission ID
+      navigate(`/complete?submission=${result.submissionId}`);
+    } else {
+      // Navigate without submission ID - page will try to get from store
+      navigate("/complete");
+    }
+  }, [navigate, submitExamToApi]);
 
   // Show error state if no data
   if (!examMetadata || !currentQuestionData) {
@@ -190,6 +207,7 @@ const ExamPage = () => {
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Header with timer and title */}
       <ExamHeader
+        examTitle={examMetadata?.examTitle || "Exam"}
         timeLeft={timeLeft}
         onSubmit={handleSubmitClick}
         onMenuClick={() => setIsPaletteOpen(true)}

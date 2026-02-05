@@ -4,6 +4,7 @@ import { Clock, Menu } from "lucide-react";
 import { formatTime } from "@/utils/timeFormatter";
 
 interface ExamHeaderProps {
+  examTitle: string;
   timeLeft: number;
   onSubmit: () => void;
   onMenuClick?: () => void;
@@ -11,7 +12,7 @@ interface ExamHeaderProps {
 }
 
 export const ExamHeader = memo(
-  ({ timeLeft, onSubmit, onMenuClick, isMobile }: ExamHeaderProps) => {
+  ({ examTitle, timeLeft, onSubmit, onMenuClick, isMobile }: ExamHeaderProps) => {
     const timeString = formatTime(timeLeft);
 
     return (
@@ -40,7 +41,7 @@ export const ExamHeader = memo(
               <p className="text-lg font-bold text-foreground">Wisdom Abacus</p>
             </div>
             <div className="text-base font-semibold text-foreground">
-              National Abacus Championship 2025
+              {examTitle || "Exam"}
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 font-semibold">
