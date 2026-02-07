@@ -11,7 +11,7 @@ const envPath = path.resolve(__dirname, '../.env');
 require('dotenv').config({ path: envPath });
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_ANON_KEY; // Must be SERVICE ROLE
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; // Must be SERVICE ROLE
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     console.error("❌ Error: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
@@ -38,12 +38,13 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 const OUTPUT_CREDS = path.join(OUTPUT_DIR, 'generated_credentials.csv');
 const OUTPUT_MISSING = path.join(OUTPUT_DIR, 'missing_data_report.json');
 
-console.log(
-    RAZORPAY_FILE,
-    CSV_FILE,
-    OUTPUT_CREDS,
-    OUTPUT_MISSING
-)
+// Output file paths for reference
+console.log("📁 Input files:");
+console.log("   - Razorpay:", RAZORPAY_FILE);
+console.log("   - CSV:", CSV_FILE);
+console.log("📁 Output files:");
+console.log("   - Credentials:", OUTPUT_CREDS);
+console.log("   - Missing data:", OUTPUT_MISSING);
 // --- HELPERS ---
 const normalizePhone = (phone) => {
     if (!phone) return null;
@@ -164,13 +165,18 @@ async function main() {
                 if (createError.message.includes('already been registered') ||
                     createError.message.includes('already exists') ||
                     createError.code === 'email_exists') {
-                    const { data: { users } } = await supabase.auth.admin.listUsers();
-                    const existing = users.find(u => normalizeEmail(u.email) === email);
-                    if (existing) {
-                        userId = existing.id;
+                    // Query profiles table directly instead of paginated listUsers()
+                    const { data: existingProfile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('email', email)
+                        .single();
+                    
+                    if (existingProfile) {
+                        userId = existingProfile.id;
                         // User already exists, we can still process their payment/enrollment
                     } else {
-                        console.error(`\n   ⚠️ Could not find existing user for: ${email}`);
+                        console.error(`\n   ⚠️ Could not find existing profile for: ${email}`);
                     }
                 } else {
                     // Unexpected error - log it
