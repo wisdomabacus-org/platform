@@ -55,14 +55,14 @@ const normalizePhone = (phone) => {
 
 const normalizeEmail = (email) => String(email).toLowerCase().trim();
 
+// Fixed default password for all seeded users
+// Users will be prompted to reset their password after first login
+const DEFAULT_USER_PASSWORD = 'Wisdom@123654';
+
 const generatePassword = (name, phone) => {
-    // Strategy: FirstWordOfName + Last4DigitsOfPhone (or Random)
-    // Example: "Ravi Kumar" (9876543210) -> "Ravi3210"
-    const cleanName = name ? name.split(' ')[0].replace(/[^a-zA-Z]/g, '') : "Student";
-    const suffix = phone ? phone.slice(-4) : Math.floor(1000 + Math.random() * 9000);
-    // Ensure capital letter for strength requirements
-    const prefix = cleanName.charAt(0).toUpperCase() + cleanName.slice(1).toLowerCase();
-    return `${prefix}@${suffix}`;
+    // Return fixed default password as requested by client
+    // All users will use this password and reset it after first login
+    return DEFAULT_USER_PASSWORD;
 };
 
 // --- MAIN FUNCTION ---

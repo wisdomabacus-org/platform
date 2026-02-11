@@ -231,8 +231,12 @@ export const competitionsService = {
       results: (leaderboard || []).map((entry) => ({
         rank: entry.rank ?? 0,
         studentName: entry.student_name ?? 'Anonymous',
+        studentGrade: entry.student_grade ?? undefined,
+        schoolName: entry.school_name ?? undefined,
+        city: entry.city ?? undefined,
         score: entry.score ?? 0,
-        submittedAt: entry.submitted_at ?? '',
+        timeTaken: entry.time_taken ?? undefined,
+        submittedAt: entry.submitted_at ?? undefined,
       })),
     };
   },

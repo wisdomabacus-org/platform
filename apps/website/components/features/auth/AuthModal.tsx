@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { EmailInput } from "@/components/features/auth/EmailInput";
@@ -16,9 +16,10 @@ import { PasswordInput } from "@/components/features/auth/PasswordInput";
 import { AuthDivider } from "@/components/features/auth/AuthDivider";
 import { useAuthModal } from "@/stores/modal-store";
 import { useAuth } from "@/hooks/use-auth";
-import { validateEmail, validatePassword } from "@/lib/constants/auth";
+import { validateEmail, validatePassword, AUTH_CONSTANTS } from "@/lib/constants/auth";
 import { ArrowRight, Sparkles, UserPlus } from "lucide-react";
 import Cookies from "js-cookie";
+import { authService } from "@/services/auth.service";
 
 export function AuthModal() {
     const { isOpen, view, onClose, setView } = useAuthModal();
@@ -100,15 +101,15 @@ export function AuthModal() {
         }
     };
 
-    const handleGoogleSignIn = () => {
+    const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
             // Store current URL to return to after auth
             if (typeof window !== 'undefined') {
                 sessionStorage.setItem('auth_return_url', window.location.pathname);
             }
-            window.location.href = `${apiUrl}/auth/google`;
+            // Use Supabase native OAuth
+            await authService.loginWithGoogle();
         } catch (error) {
             console.error("Google sign in error:", error);
             setIsGoogleLoading(false);
@@ -189,13 +190,13 @@ export function AuthModal() {
 
                         {view === 'login' && (
                             <div className="flex justify-end">
-                                <Button
-                                    variant="link"
-                                    className="px-0 text-xs text-slate-500 hover:text-orange-600 h-auto"
-                                    type="button"
+                                <Link 
+                                    href={AUTH_CONSTANTS.ROUTES.FORGOT_PASSWORD}
+                                    onClick={onClose}
+                                    className="text-xs text-slate-500 hover:text-orange-600 h-auto font-medium"
                                 >
                                     Forgot password?
-                                </Button>
+                                </Link>
                             </div>
                         )}
 

@@ -65,8 +65,12 @@ export interface CompetitionResults {
   results: Array<{
     rank: number;
     studentName: string;
+    studentGrade?: number;
+    schoolName?: string;
+    city?: string;
     score: number;
-    submittedAt: string;
+    timeTaken?: number; // in seconds
+    submittedAt?: string;
   }>;
 }
 

@@ -92,10 +92,11 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-6">
 
-              {/* Timer */}
+              {/* Timer - Only show when registration is open */}
               <RegistrationTimer
                 targetDate={competition.registrationEndDate}
                 competitionStatus={competition.status}
+                registrationStartDate={competition.registrationStartDate}
               />
 
               {/* Ticket Card */}
