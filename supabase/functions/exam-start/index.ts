@@ -2,7 +2,7 @@
 // Start an exam session (competition or mock test)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createServiceClient, requireAuth } from "../_shared/supabase.ts";
+import { createServiceClient } from "../_shared/supabase.ts";
 import { handleCors, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import type { ExamType, Competition, UserProfile } from "../_shared/types.ts";
 
@@ -21,19 +21,93 @@ interface StartExamResponse {
     end_time: number;
 }
 
+/**
+ * Get the authenticated user from the request
+ * This version is more lenient and provides detailed error logging
+ */
+async function getAuthUser(req: Request): Promise<{ id: string; email?: string } | null> {
+    const authHeader = req.headers.get("Authorization");
+    
+    console.log("Auth header present:", !!authHeader);
+    
+    if (!authHeader?.startsWith("Bearer ")) {
+        console.error("Missing or invalid Authorization header");
+        return null;
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createServiceClient();
+
+    try {
+        const {
+            data: { user },
+            error,
+        } = await supabase.auth.getUser(token);
+
+        if (error) {
+            console.error("Auth validation error:", error.message);
+            return null;
+        }
+
+        if (!user) {
+            console.error("No user found for token");
+            return null;
+        }
+
+        console.log("Authenticated user:", user.id);
+        return {
+            id: user.id,
+            email: user.email,
+        };
+    } catch (e) {
+        console.error("Exception during auth validation:", e);
+        return null;
+    }
+}
+
+/**
+ * Require authentication - throws if not authenticated
+ */
+async function requireAuth(req: Request): Promise<{ id: string; email?: string }> {
+    const user = await getAuthUser(req);
+    if (!user) {
+        throw new Error("Unauthorized");
+    }
+    return user;
+}
+
 serve(async (req: Request) => {
     // Handle CORS preflight
     const corsResponse = handleCors(req);
     if (corsResponse) return corsResponse;
 
     try {
+        console.log("=== exam-start called ===");
+        console.log("Request method:", req.method);
+        console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+
         // Require authentication
-        const user = await requireAuth(req);
+        let user;
+        try {
+            user = await requireAuth(req);
+        } catch (authError) {
+            console.error("Authentication failed:", authError);
+            return errorResponse("Unauthorized - Please login again", 401);
+        }
+
         const supabase = createServiceClient();
 
         // Parse request body
-        const body: StartExamRequest = await req.json();
+        let body: StartExamRequest;
+        try {
+            body = await req.json();
+        } catch (e) {
+            console.error("Failed to parse request body:", e);
+            return errorResponse("Invalid JSON in request body", 400);
+        }
+        
         const { exam_type, exam_id } = body;
+        console.log("Request body:", { exam_type, exam_id, user_id: user.id });
 
         if (!exam_type || !exam_id) {
             return errorResponse("exam_type and exam_id are required", 400);
@@ -47,10 +121,16 @@ serve(async (req: Request) => {
             .single();
 
         if (profileError || !profile) {
+            console.error("Profile fetch error:", profileError);
             return errorResponse("User profile not found", 404);
         }
 
         const userProfile = profile as UserProfile;
+        console.log("User profile found:", { 
+            id: userProfile.id, 
+            student_grade: userProfile.student_grade,
+            student_name: userProfile.student_name 
+        });
 
         // Check for existing submission
         const existingQuery = supabase
@@ -69,6 +149,8 @@ serve(async (req: Request) => {
 
         // If submission exists, check if we can resume or if it's already submitted
         if (existingSubmission) {
+            console.log("Existing submission found:", existingSubmission);
+            
             if (existingSubmission.status === "submitted" || existingSubmission.status === "graded") {
                 return errorResponse("You have already attempted this exam", 409);
             }
@@ -106,6 +188,7 @@ serve(async (req: Request) => {
                         end_time: endTime,
                     };
 
+                    console.log("Resuming existing session");
                     return jsonResponse({
                         success: true,
                         data: response,
@@ -123,9 +206,6 @@ serve(async (req: Request) => {
             }
 
             // No valid session but submission exists in-progress state
-            // Instead of throwing error, create a new session for this submission
-            // This improves UX - user can continue their exam
-
             console.log("Creating new session for existing in-progress submission:", existingSubmission.id);
 
             // Get the original exam details to recreate the session
@@ -136,6 +216,7 @@ serve(async (req: Request) => {
                 .single();
 
             if (subDetailsError || !existingSubDetails) {
+                console.error("Failed to retrieve submission details:", subDetailsError);
                 return errorResponse("Failed to retrieve submission details", 500);
             }
 
@@ -158,7 +239,7 @@ serve(async (req: Request) => {
                 start_time: startTime.toISOString(),
                 end_time: endTime.toISOString(),
                 duration_minutes: durationMinutes,
-                answers: {}, // Start fresh with answers (previous ones weren't saved)
+                answers: {},
                 status: "in-progress",
                 is_locked: false,
                 expires_at: expiresAt.toISOString(),
@@ -179,6 +260,7 @@ serve(async (req: Request) => {
                 end_time: endTime.getTime(),
             };
 
+            console.log("New session created for existing submission");
             return jsonResponse({
                 success: true,
                 data: resumeResponse,
@@ -196,6 +278,8 @@ serve(async (req: Request) => {
         };
 
         if (exam_type === "competition") {
+            console.log("Processing competition exam start");
+            
             // Check enrollment
             const { data: enrollment, error: enrollError } = await supabase
                 .from("enrollments")
@@ -207,6 +291,7 @@ serve(async (req: Request) => {
                 .single();
 
             if (enrollError || !enrollment) {
+                console.error("Enrollment check failed:", enrollError);
                 return errorResponse("You are not enrolled in this competition", 403);
             }
 
@@ -219,6 +304,7 @@ serve(async (req: Request) => {
                 .single();
 
             if (compError || !competition) {
+                console.error("Competition fetch error:", compError);
                 return errorResponse("Competition not found", 404);
             }
 
@@ -241,6 +327,7 @@ serve(async (req: Request) => {
                 .eq("competition_id", exam_id);
 
             if (qbConfigError || !qbConfig?.length) {
+                console.error("Question bank config error:", qbConfigError);
                 return errorResponse("No question bank configured", 500);
             }
 
@@ -267,6 +354,8 @@ serve(async (req: Request) => {
                 question_bank_id: matchingQb.question_bank_id,
             };
         } else {
+            console.log("Processing mock test exam start");
+            
             // Mock test
             const { data: mockTest, error: mtError } = await supabase
                 .from("mock_tests")
@@ -276,6 +365,7 @@ serve(async (req: Request) => {
                 .single();
 
             if (mtError || !mockTest) {
+                console.error("Mock test fetch error:", mtError);
                 return errorResponse("Mock test not found", 404);
             }
 
@@ -327,10 +417,12 @@ serve(async (req: Request) => {
                 title: mockTest.title,
                 duration: mockTest.duration,
                 total_questions: questionCount || 0,
-                total_marks: mockTest.total_questions, // Assuming 1 mark per question
+                total_marks: mockTest.total_questions,
                 question_bank_id: matchingQb.question_bank_id,
             };
         }
+
+        console.log("Exam details:", examDetails);
 
         // Create submission record
         const startTime = new Date();
@@ -414,11 +506,12 @@ serve(async (req: Request) => {
             end_time: endTime.getTime(),
         };
 
+        console.log("Exam started successfully:", { session_token: sessionToken });
         return jsonResponse({ success: true, data: response });
     } catch (error) {
         console.error("exam-start error:", error);
         if (error instanceof Error && error.message === "Unauthorized") {
-            return errorResponse("Unauthorized", 401);
+            return errorResponse("Unauthorized - Please login again", 401);
         }
         return errorResponse("Internal server error", 500);
     }

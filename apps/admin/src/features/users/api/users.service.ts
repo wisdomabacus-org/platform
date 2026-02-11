@@ -125,16 +125,13 @@ export const usersService = {
     },
 
     bulkCreate: async (users: any[]) => {
-        // This requires a Supabase Edge Function to use the service_role key 
-        // to create users in auth.users and then profiles.
-        // Example: 
-        // const { data, error } = await supabase.functions.invoke('admin-bulk-create-users', { body: { users } });
-        // if (error) throw error;
-        // return data;
-
-        console.log("Mock bulk create:", users);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return { success: true, count: users.length };
+        // Use the admin-bulk-create-users Edge Function
+        const { data, error } = await supabase.functions.invoke('admin-bulk-create-users', { 
+            body: { users } 
+        });
+        
+        if (error) throw error;
+        return data;
     },
 
     updateStatus: async (id: string, status: 'active' | 'suspended') => {
@@ -147,15 +144,13 @@ export const usersService = {
         return true;
     },
 
-    // NOTE: This only deletes the profile. Auth user deletion requires Edge Function or Admin API.
-    // For now assuming profile delete triggers cascade or is sufficient for view hiding if we fail on auth delete.
+    // Delete user (auth + profile) via Edge Function
     deleteUser: async (id: string) => {
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', id);
+        const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+            body: { userId: id }
+        });
 
         if (error) throw error;
-        return true;
+        return data;
     }
 };

@@ -25,7 +25,21 @@ export const examService = {
   ): Promise<StartExamResponse> => {
     const supabase = getSupabaseClient();
 
-    // Call Edge Function
+    // Check if user is authenticated before calling the function
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('Please login to start the exam');
+    }
+
+    console.log('Starting exam with auth:', { 
+      examId, 
+      examType, 
+      hasToken: !!session.access_token,
+      tokenPreview: session.access_token?.substring(0, 20) + '...'
+    });
+
+    // Call Edge Function - supabase client automatically adds Authorization header
     const { data, error } = await supabase.functions.invoke('exam-start', {
       body: {
         exam_id: examId,
@@ -33,7 +47,10 @@ export const examService = {
       },
     });
 
+    console.log('exam-start response:', { data, error });
+
     if (error) {
+      console.error('exam-start error:', error);
       throw new Error(error.message || 'Failed to start exam');
     }
 
