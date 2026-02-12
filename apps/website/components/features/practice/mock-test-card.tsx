@@ -12,7 +12,7 @@ import {
     Loader2,
     LogIn,
     CheckCircle2,
-    EyeOff,
+    RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +32,10 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
 
     const [attemptState, setAttemptState] = useState<{
         hasAttempted: boolean;
+        inProgress: boolean;
         attempt?: MockTestAttempt;
         isChecking: boolean;
-    }>({ hasAttempted: false, isChecking: false });
+    }>({ hasAttempted: false, inProgress: false, isChecking: false });
 
     // Use the is_locked field from the database
     const isLocked = test.isLocked;
@@ -58,6 +59,7 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
             if (!cancelled) {
                 setAttemptState({
                     hasAttempted: result.hasAttempted,
+                    inProgress: result.inProgress,
                     attempt: result.attempt,
                     isChecking: false,
                 });
@@ -108,6 +110,7 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
     };
 
     const hasAttempted = attemptState.hasAttempted;
+    const isInProgress = attemptState.inProgress;
 
     return (
         <Card
@@ -117,7 +120,9 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                     ? 'bg-slate-50/80 border-slate-200 opacity-80'
                     : hasAttempted
                         ? 'bg-green-50/30 border-green-200/60'
-                        : 'bg-white border-slate-200 hover:border-orange-200 hover:shadow-lg hover:-translate-y-1'
+                        : isInProgress
+                            ? 'bg-amber-50/30 border-amber-200/60'
+                            : 'bg-white border-slate-200 hover:border-orange-200 hover:shadow-lg hover:-translate-y-1'
                 }
         `}
         >
@@ -131,14 +136,18 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                             ? 'bg-slate-100 border-slate-200'
                             : hasAttempted
                                 ? 'bg-green-100 border-green-200'
-                                : 'bg-white border-slate-100 shadow-sm group-hover:border-orange-100 group-hover:bg-orange-50/30'
+                                : isInProgress
+                                    ? 'bg-amber-100 border-amber-200'
+                                    : 'bg-white border-slate-100 shadow-sm group-hover:border-orange-100 group-hover:bg-orange-50/30'
                         }
            `}>
                         {isLocked
                             ? <Lock className="h-5 w-5 text-slate-400" />
                             : hasAttempted
                                 ? <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                : renderIcon()
+                                : isInProgress
+                                    ? <RotateCcw className="h-5 w-5 text-amber-600" />
+                                    : renderIcon()
                         }
                     </div>
 
@@ -148,6 +157,11 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                                 {attemptState.attempt.percentage}%
                             </Badge>
                         )}
+                        {isInProgress && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold">
+                                In Progress
+                            </Badge>
+                        )}
                         <Badge variant="outline" className={`font-semibold ${isLocked ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-white text-slate-700 border-slate-200'}`}>
                             {getDifficultyLabel()}
                         </Badge>
@@ -155,7 +169,7 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                 </div>
 
                 <div className="mb-6">
-                    <h3 className={`font-display font-bold text-lg mb-2 leading-tight ${isLocked ? 'text-slate-500' : hasAttempted ? 'text-green-800' : 'text-[#121212] group-hover:text-orange-600 transition-colors'}`}>
+                    <h3 className={`font-display font-bold text-lg mb-2 leading-tight ${isLocked ? 'text-slate-500' : hasAttempted ? 'text-green-800' : isInProgress ? 'text-amber-800' : 'text-[#121212] group-hover:text-orange-600 transition-colors'}`}>
                         {test.title}
                     </h3>
                     <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
@@ -192,6 +206,24 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                     >
                         <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
                         Completed
+                    </Button>
+                ) : isInProgress ? (
+                    <Button
+                        className="w-full bg-amber-600 text-white border-0 hover:bg-amber-700 shadow-md transition-all duration-300 font-bold disabled:opacity-50"
+                        onClick={handleStartPractice}
+                        disabled={isStartingExam}
+                    >
+                        {isStartingExam ? (
+                            <>
+                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                Resuming...
+                            </>
+                        ) : (
+                            <>
+                                <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                                Resume Practice
+                            </>
+                        )}
                     </Button>
                 ) : !isAuthenticated ? (
                     <Button

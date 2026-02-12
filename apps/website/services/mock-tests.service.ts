@@ -14,59 +14,69 @@ export interface MockTestAttempt {
 
 export const mockTestsService = {
   /**
-   * Check if the current user has attempted a mock test
+   * Check the attempt state of a mock test for the current user.
+   * Returns: 
+   *   - hasAttempted: true only if exam was fully submitted (completed/auto-submitted)
+   *   - inProgress: true if exam was started but not yet submitted
+   *   - attempt: submission details if available
    */
-  checkAttempt: async (mockTestId: string): Promise<{ hasAttempted: boolean; attempt?: MockTestAttempt }> => {
+  checkAttempt: async (mockTestId: string): Promise<{
+    hasAttempted: boolean;
+    inProgress: boolean;
+    attempt?: MockTestAttempt;
+  }> => {
     const supabase = getSupabaseClient();
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return { hasAttempted: false };
+      return { hasAttempted: false, inProgress: false };
     }
 
+    // Check submissions table directly for this user + mock test
     const { data, error } = await supabase
-      .from('user_mock_test_attempts')
-      .select(`
-        id,
-        mock_test_id,
-        submission_id,
-        submissions!submission_id(
-          score,
-          total_questions,
-          submitted_at
-        )
-      `)
+      .from('submissions')
+      .select('id, status, score, total_questions, submitted_at, time_taken')
       .eq('user_id', user.id)
+      .eq('exam_type', 'mock-test')
       .eq('mock_test_id', mockTestId)
       .maybeSingle();
 
     if (error) {
       console.error('Error checking mock test attempt:', error);
-      return { hasAttempted: false };
+      return { hasAttempted: false, inProgress: false };
     }
 
     if (!data) {
-      return { hasAttempted: false };
+      return { hasAttempted: false, inProgress: false };
     }
 
-    const submission = data.submissions as any;
-    const totalMarks = submission?.total_questions || 0;
-    const score = submission?.score || 0;
-    const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
+    // If status is completed or auto-submitted, the test is done
+    if (data.status === 'completed' || data.status === 'auto-submitted') {
+      const totalMarks = data.total_questions || 0;
+      const score = data.score || 0;
+      const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
 
+      return {
+        hasAttempted: true,
+        inProgress: false,
+        attempt: {
+          id: data.id,
+          mockTestId: mockTestId,
+          submissionId: data.id,
+          score: score,
+          totalMarks: totalMarks,
+          percentage: percentage,
+          submittedAt: data.submitted_at || '',
+        },
+      };
+    }
+
+    // Status is 'in-progress' - exam started but not submitted
     return {
-      hasAttempted: true,
-      attempt: {
-        id: data.id,
-        mockTestId: data.mock_test_id,
-        submissionId: data.submission_id || '',
-        score: score,
-        totalMarks: totalMarks,
-        percentage: percentage,
-        submittedAt: submission?.submitted_at,
-      },
+      hasAttempted: false,
+      inProgress: true,
     };
   },
 

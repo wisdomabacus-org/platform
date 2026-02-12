@@ -202,6 +202,19 @@ serve(async (req: Request) => {
                 })
                 .eq("id", session.id);
 
+            // Record mock test attempt (only on actual submission)
+            if (session.exam_type === "mock-test") {
+                // Use upsert to handle edge cases where attempt record might already exist
+                await supabase.from("user_mock_test_attempts").upsert(
+                    {
+                        user_id: session.user_id,
+                        mock_test_id: session.exam_id,
+                        submission_id: session.submission_id,
+                    },
+                    { onConflict: "user_id,mock_test_id" }
+                );
+            }
+
             const response: SubmitExamResponse = {
                 success: true,
                 submission_id: session.submission_id,

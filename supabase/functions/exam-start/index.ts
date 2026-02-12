@@ -27,9 +27,9 @@ interface StartExamResponse {
  */
 async function getAuthUser(req: Request): Promise<{ id: string; email?: string } | null> {
     const authHeader = req.headers.get("Authorization");
-    
+
     console.log("Auth header present:", !!authHeader);
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
         console.error("Missing or invalid Authorization header");
         return null;
@@ -89,29 +89,29 @@ function validateGradeCompatibility(
     // Check if question bank grades overlap with mock test grades
     const qbMin = qbMinGrade ?? 0;
     const qbMax = qbMaxGrade ?? 12;
-    
+
     // Check if there's any overlap
     const hasOverlap = !(qbMax < mockTestMinGrade || qbMin > mockTestMaxGrade);
-    
+
     if (!hasOverlap) {
         return {
             valid: false,
             error: `Question bank grades (${qbMin}-${qbMax}) don't overlap with mock test grades (${mockTestMinGrade}-${mockTestMaxGrade})`
         };
     }
-    
+
     // Check if assigned grades are within mock test range
     const invalidGrades = assignedGrades.filter(
         g => g < mockTestMinGrade || g > mockTestMaxGrade
     );
-    
+
     if (invalidGrades.length > 0) {
         return {
             valid: false,
             error: `Question bank assigned for grades [${invalidGrades.join(",")}] but mock test only supports grades ${mockTestMinGrade}-${mockTestMaxGrade}`
         };
     }
-    
+
     return { valid: true };
 }
 
@@ -129,14 +129,14 @@ function validateQuestionCount(
             error: `Question bank "${questionBankTitle}" has no questions. Please contact support.`
         };
     }
-    
+
     if (actualCount < expectedCount) {
         return {
             valid: false,
             error: `Question bank "${questionBankTitle}" has only ${actualCount} questions, but this test requires ${expectedCount}. Please contact support.`
         };
     }
-    
+
     if (actualCount > expectedCount) {
         console.warn(
             `Question bank "${questionBankTitle}" has ${actualCount} questions, ` +
@@ -144,7 +144,7 @@ function validateQuestionCount(
             `Only the first ${expectedCount} questions will be used.`
         );
     }
-    
+
     return { valid: true };
 }
 
@@ -177,7 +177,7 @@ serve(async (req: Request) => {
             console.error("Failed to parse request body:", e);
             return errorResponse("Invalid JSON in request body", 400);
         }
-        
+
         const { exam_type, exam_id } = body;
         console.log("Request body:", { exam_type, exam_id, user_id: user.id });
 
@@ -198,10 +198,10 @@ serve(async (req: Request) => {
         }
 
         const userProfile = profile as UserProfile;
-        console.log("User profile found:", { 
-            id: userProfile.id, 
+        console.log("User profile found:", {
+            id: userProfile.id,
             student_grade: userProfile.student_grade,
-            student_name: userProfile.student_name 
+            student_name: userProfile.student_name
         });
 
         // Check for existing submission
@@ -222,8 +222,8 @@ serve(async (req: Request) => {
         // If submission exists, check if we can resume or if it's already submitted
         if (existingSubmission) {
             console.log("Existing submission found:", existingSubmission);
-            
-            if (existingSubmission.status === "submitted" || existingSubmission.status === "graded") {
+
+            if (existingSubmission.status === "completed" || existingSubmission.status === "auto-submitted") {
                 return errorResponse("You have already attempted this exam", 409);
             }
 
@@ -351,7 +351,7 @@ serve(async (req: Request) => {
 
         if (exam_type === "competition") {
             console.log("Processing competition exam start");
-            
+
             // Check enrollment
             const { data: enrollment, error: enrollError } = await supabase
                 .from("enrollments")
@@ -448,7 +448,7 @@ serve(async (req: Request) => {
             };
         } else {
             console.log("Processing mock test exam start");
-            
+
             // Mock test
             const { data: mockTest, error: mtError } = await supabase
                 .from("mock_tests")
@@ -462,17 +462,6 @@ serve(async (req: Request) => {
                 return errorResponse("Mock test not found", 404);
             }
 
-            // Check if already attempted
-            const { data: attempt } = await supabase
-                .from("user_mock_test_attempts")
-                .select("id")
-                .eq("user_id", user.id)
-                .eq("mock_test_id", exam_id)
-                .single();
-
-            if (attempt) {
-                return errorResponse("You have already attempted this mock test", 409);
-            }
 
             // Check grade eligibility
             const userGrade = userProfile.student_grade || 0;
@@ -606,14 +595,8 @@ serve(async (req: Request) => {
             return errorResponse("Failed to create exam session", 500);
         }
 
-        // Record mock test attempt if applicable
-        if (exam_type === "mock-test") {
-            await supabase.from("user_mock_test_attempts").insert({
-                user_id: user.id,
-                mock_test_id: exam_id,
-                submission_id: submission.id,
-            });
-        }
+        // Note: Mock test attempt record is created on submission, not here.
+        // This allows users to resume if they close the tab before submitting.
 
         // Update enrollment with submission ID if competition
         if (exam_type === "competition") {
