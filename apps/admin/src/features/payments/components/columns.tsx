@@ -67,10 +67,6 @@ const PaymentRowActions = ({ payment }: { payment: Payment }) => {
           </DropdownMenuItem>
         )}
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive">
-          Initiate Refund (Stub)
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -110,7 +110,7 @@ export default function CompetitionDetailPage() {
     const { data: participants, isLoading: isLoadingParticipants } = useCompetitionParticipants(id!);
     const { data: revenueStats } = useCompetitionRevenue(id!);
     const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
-    const [participantsPage, setParticipantsPage] = useState(0);
+
 
     const handlePublish = () => {
         if (!competition) return;
@@ -369,42 +369,55 @@ export default function CompetitionDetailPage() {
                                 View All Enrollments
                             </Button>
                         </div>
-                        {(participants?.length || competition.enrolled_count || 0) === 0 ? (
+                        {isLoadingParticipants ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            </div>
+                        ) : !participants || participants.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-center">
                                 <Users className="h-10 w-10 text-muted-foreground/30" />
                                 <p className="mt-3 text-sm text-muted-foreground">No participants yet</p>
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                {isLoadingParticipants ? (
-                                    <div className="flex justify-center py-8">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    </div>
-                                ) : (
-                                    <div className="grid gap-2">
-                                        {participants?.slice(0, 10).map((participant: any) => (
-                                            <div key={participant.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                                <div>
-                                                    <p className="font-medium text-sm">{participant.userName}</p>
-                                                    <p className="text-xs text-muted-foreground">{participant.userPhone}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
+                            <div className="rounded-md border">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-muted/50">
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Student</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Phone</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">UID</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Payment</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Enrolled</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {participants.map((participant: any) => (
+                                            <tr key={participant.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                                                <td className="px-4 py-2.5 font-medium">{participant.userName}</td>
+                                                <td className="px-4 py-2.5 text-muted-foreground">{participant.userPhone}</td>
+                                                <td className="px-4 py-2.5">
+                                                    <span className="font-mono text-xs">{participant.userUid?.substring(0, 8)}...</span>
+                                                </td>
+                                                <td className="px-4 py-2.5">
                                                     <Badge variant={participant.isPaymentConfirmed ? 'default' : 'secondary'}>
                                                         {participant.isPaymentConfirmed ? 'Paid' : 'Unpaid'}
                                                     </Badge>
-                                                    {participant.submissionId && (
-                                                        <Badge variant="outline">Submitted</Badge>
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    {participant.submissionId ? (
+                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Submitted</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">Pending</Badge>
                                                     )}
-                                                </div>
-                                            </div>
+                                                </td>
+                                                <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                                                    {format(participant.enrolledAt, 'MMM d, yyyy')}
+                                                </td>
+                                            </tr>
                                         ))}
-                                        {(participants?.length || 0) > 10 && (
-                                            <p className="text-center text-sm text-muted-foreground py-2">
-                                                +{(participants?.length || 0) - 10} more participants
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>

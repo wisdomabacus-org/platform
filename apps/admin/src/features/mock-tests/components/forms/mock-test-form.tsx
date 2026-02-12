@@ -117,10 +117,12 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                     <FormLabel className="text-xs font-medium">Sort Order</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         className="h-9"
                         {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -152,10 +154,12 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                   <FormLabel className="text-xs font-medium">Duration (mins) *</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       className="h-9"
                       {...field}
-                      onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -171,10 +175,12 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                   <FormLabel className="text-xs font-medium">Total Questions</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       className="h-9"
                       {...field}
-                      onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -190,12 +196,13 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                   <FormLabel className="text-xs font-medium">Min Grade *</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      min={1}
-                      max={12}
+                      type="text"
+                      inputMode="numeric"
                       className="h-9"
+                      placeholder="1-12"
                       {...field}
-                      onChange={e => field.onChange(parseInt(e.target.value) || 1)}
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -211,12 +218,13 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                   <FormLabel className="text-xs font-medium">Max Grade *</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      min={1}
-                      max={12}
+                      type="text"
+                      inputMode="numeric"
                       className="h-9"
+                      placeholder="1-12"
                       {...field}
-                      onChange={e => field.onChange(parseInt(e.target.value) || 12)}
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />

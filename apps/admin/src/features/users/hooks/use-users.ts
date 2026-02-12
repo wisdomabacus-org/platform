@@ -28,6 +28,40 @@ export function useUserEnrollments(userId: string) {
     });
 }
 
+export function useUpdateProfile() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => usersService.updateProfile(id, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.USERS, variables.id] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.USERS] });
+            toast.success('Profile updated successfully');
+        },
+        onError: (error) => {
+            toast.error(`Failed to update profile: ${error.message}`);
+        }
+    });
+}
+
+export function useUserPayments(userId: string) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.USERS, userId, 'payments'],
+        queryFn: () => usersService.getUserPayments(userId),
+        enabled: !!userId,
+    });
+}
+
+export function useUserMockTestAttempts(userId: string) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.USERS, userId, 'mock-test-attempts'],
+        queryFn: async () => {
+            const { mockTestAttemptsService } = await import('../../mock-tests/api/mock-test-attempts.service');
+            return mockTestAttemptsService.getByUser(userId);
+        },
+        enabled: !!userId,
+    });
+}
+
 export function useBulkCreateUsers() {
     const queryClient = useQueryClient();
     return useMutation({

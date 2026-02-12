@@ -126,12 +126,55 @@ export const usersService = {
 
     bulkCreate: async (users: any[]) => {
         // Use the admin-bulk-create-users Edge Function
-        const { data, error } = await supabase.functions.invoke('admin-bulk-create-users', { 
-            body: { users } 
+        const { data, error } = await supabase.functions.invoke('admin-bulk-create-users', {
+            body: { users }
         });
-        
+
         if (error) throw error;
         return data;
+    },
+
+    updateProfile: async (id: string, updates: Partial<Omit<User, 'id' | 'uid' | 'email' | 'authProvider' | 'createdAt' | 'updatedAt'>>) => {
+        const payload: any = {};
+        if (updates.studentName !== undefined) payload.student_name = updates.studentName;
+        if (updates.parentName !== undefined) payload.parent_name = updates.parentName;
+        if (updates.studentGrade !== undefined) payload.student_grade = updates.studentGrade;
+        if (updates.phone !== undefined) payload.phone = updates.phone;
+        if (updates.schoolName !== undefined) payload.school_name = updates.schoolName;
+        if (updates.city !== undefined) payload.city = updates.city;
+        if (updates.state !== undefined) payload.state = updates.state;
+        if (updates.dateOfBirth !== undefined) payload.date_of_birth = updates.dateOfBirth;
+
+        const { error } = await supabase
+            .from('profiles')
+            .update(payload)
+            .eq('id', id);
+
+        if (error) throw error;
+        return true;
+    },
+
+    getUserPayments: async (userId: string) => {
+        const { data, error } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return (data || []).map((p: any) => ({
+            id: p.id,
+            amount: (p.amount || 0) / 100,
+            currency: p.currency || 'INR',
+            status: (p.status || 'pending').toLowerCase(),
+            purpose: p.purpose,
+            referenceId: p.reference_id,
+            razorpayOrderId: p.razorpay_order_id,
+            razorpayPaymentId: p.razorpay_payment_id,
+            failureReason: p.failure_reason,
+            createdAt: new Date(p.created_at),
+        }));
     },
 
     updateStatus: async (id: string, status: 'active' | 'suspended') => {

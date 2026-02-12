@@ -102,11 +102,14 @@ export const columns: ColumnDef<QuestionBank>[] = [
     {
         accessorKey: 'questionsCount',
         header: 'Questions',
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-                <span className="font-mono text-xs">{row.getValue('questionsCount')}</span>
-            </div>
-        ),
+        cell: ({ row }) => {
+            const count = row.getValue('questionsCount') as number;
+            return (
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs">{count > 0 ? count : '—'}</span>
+                </div>
+            );
+        },
     },
     {
         accessorKey: 'status',

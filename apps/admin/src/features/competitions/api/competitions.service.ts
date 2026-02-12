@@ -36,7 +36,7 @@ export const competitionsService = {
             console.error('Error fetching competitions:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return {
             data: data as Competition[],
             count: count || 0,
@@ -61,7 +61,7 @@ export const competitionsService = {
             console.error('Error fetching competition:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -79,7 +79,7 @@ export const competitionsService = {
             console.error('Error creating competition:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data as Competition;
     },
 
@@ -98,7 +98,7 @@ export const competitionsService = {
             console.error('Error updating competition:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data as Competition;
     },
 
@@ -115,7 +115,7 @@ export const competitionsService = {
             console.error('Error deleting competition:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return true;
     },
 
@@ -150,7 +150,7 @@ export const competitionsService = {
             console.error('Error inserting syllabus:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -184,7 +184,7 @@ export const competitionsService = {
             console.error('Error inserting prizes:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -204,7 +204,7 @@ export const competitionsService = {
             console.error('Error fetching question banks:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -238,7 +238,7 @@ export const competitionsService = {
             console.error('Error assigning question banks:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -270,7 +270,7 @@ export const competitionsService = {
             userUid: e.profiles?.uid || '—',
             status: e.status,
             paymentStatus: e.payments?.status || '—',
-            paymentAmount: e.payments?.amount || 0,
+            paymentAmount: (e.payments?.amount || 0) / 100,
             isPaymentConfirmed: e.is_payment_confirmed,
             submissionId: e.submission_id,
             enrolledAt: new Date(e.created_at),
@@ -295,13 +295,13 @@ export const competitionsService = {
             throw new Error(extractErrorMessage(error));
         }
 
-        const confirmedPayments = (data || []).filter((e: any) => 
+        const confirmedPayments = (data || []).filter((e: any) =>
             e.is_payment_confirmed && e.payments?.status === 'SUCCESS'
         );
 
-        const totalRevenue = confirmedPayments.reduce((sum: number, e: any) => 
+        const totalRevenue = confirmedPayments.reduce((sum: number, e: any) =>
             sum + (e.payments?.amount || 0), 0
-        );
+        ) / 100;
 
         return {
             totalRevenue,

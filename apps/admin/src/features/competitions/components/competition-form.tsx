@@ -444,10 +444,12 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                     <FormControl>
                                         <div className="relative">
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="numeric"
                                                 className="pr-12"
                                                 {...field}
-                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                                value={field.value ?? ''}
+                                                onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                             />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                                 mins
@@ -470,9 +472,11 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                     </FormLabel>
                                     <FormControl>
                                         <Input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             {...field}
-                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                            value={field.value ?? ''}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -491,9 +495,11 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                     </FormLabel>
                                     <FormControl>
                                         <Input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             {...field}
-                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                            value={field.value ?? ''}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -516,10 +522,12 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                                 ₹
                                             </span>
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="numeric"
                                                 className="pl-7"
                                                 {...field}
-                                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                value={field.value ?? ''}
+                                                onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                             />
                                         </div>
                                     </FormControl>
@@ -540,11 +548,12 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                     <FormLabel>Min Grade</FormLabel>
                                     <FormControl>
                                         <Input
-                                            type="number"
-                                            min={1}
-                                            max={12}
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="1-12"
                                             {...field}
-                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                                            value={field.value ?? ''}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -560,11 +569,12 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                     <FormLabel>Max Grade</FormLabel>
                                     <FormControl>
                                         <Input
-                                            type="number"
-                                            min={1}
-                                            max={12}
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="1-12"
                                             {...field}
-                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 12)}
+                                            value={field.value ?? ''}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -880,11 +890,13 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                                                             ₹
                                                                         </span>
                                                                         <Input
-                                                                            type="number"
+                                                                            type="text"
+                                                                            inputMode="numeric"
                                                                             className="pl-7"
                                                                             {...field}
+                                                                            value={field.value ?? ''}
                                                                             onChange={(e) =>
-                                                                                field.onChange(parseFloat(e.target.value) || 0)
+                                                                                field.onChange(e.target.value === '' ? '' : e.target.value)
                                                                             }
                                                                         />
                                                                     </div>
@@ -908,11 +920,13 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                                                             ₹
                                                                         </span>
                                                                         <Input
-                                                                            type="number"
+                                                                            type="text"
+                                                                            inputMode="numeric"
                                                                             className="pl-7"
                                                                             {...field}
+                                                                            value={field.value ?? ''}
                                                                             onChange={(e) =>
-                                                                                field.onChange(parseFloat(e.target.value) || 0)
+                                                                                field.onChange(e.target.value === '' ? '' : e.target.value)
                                                                             }
                                                                         />
                                                                     </div>
