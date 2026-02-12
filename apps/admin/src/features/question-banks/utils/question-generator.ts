@@ -146,8 +146,8 @@ export function generateBatchQuestions(config: GenerationConfig): Partial<Questi
                     correctAnswer = sum;
                 }
 
-                // Safety check - if answer is negative or zero, convert all to positive
-                if (correctAnswer <= 0) {
+                // Safety check - if answer is negative, convert all to positive
+                if (correctAnswer < 0) {
                     for (let idx = 0; idx < operationNumbers.length; idx++) {
                         if (operationNumbers[idx] < 0) {
                             operationNumbers[idx] = Math.abs(operationNumbers[idx]);
