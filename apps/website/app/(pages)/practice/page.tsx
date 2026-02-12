@@ -2,7 +2,7 @@ import { PracticeHeader } from "@/components/features/practice/practice-header";
 import { WorksheetGeneratorHero } from "@/components/features/practice/worksheet-generator-hero";
 import { CompetitionNudge } from "@/components/features/practice/competition-nudge";
 import { MockTestCard } from "@/components/features/practice/mock-test-card";
-import { getAllMockTestsServer } from "@/services/mock-tests.service";
+import { getAllMockTestsServer } from "@/services/mock-tests.server";
 import type { MockTest } from "@/types/mock-test";
 
 

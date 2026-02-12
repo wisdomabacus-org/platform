@@ -16,8 +16,8 @@ export const competitionSchema = z.object({
     enrollment_fee: z.coerce.number().min(0, { message: 'Fee cannot be negative' }).default(0),
 
     // Grade range
-    min_grade: z.coerce.number().min(1).max(12).default(0),
-    max_grade: z.coerce.number().min(1).max(12).default(8),
+    min_grade: z.coerce.number().min(0).max(12).default(0),
+    max_grade: z.coerce.number().min(0).max(12).default(8),
 
     // Settings
     duration: z.coerce.number().min(1, { message: 'Duration must be at least 1 minute' }).default(60),

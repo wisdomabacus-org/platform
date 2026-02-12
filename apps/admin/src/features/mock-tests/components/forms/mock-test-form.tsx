@@ -199,7 +199,7 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                       type="text"
                       inputMode="numeric"
                       className="h-9"
-                      placeholder="1-12"
+                      placeholder="0-12"
                       {...field}
                       value={field.value ?? ''}
                       onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}
@@ -221,7 +221,7 @@ export function MockTestForm({ initial, onCancel, onSave, isLoading }: Props) {
                       type="text"
                       inputMode="numeric"
                       className="h-9"
-                      placeholder="1-12"
+                      placeholder="0-12"
                       {...field}
                       value={field.value ?? ''}
                       onChange={e => field.onChange(e.target.value === '' ? '' : e.target.value)}

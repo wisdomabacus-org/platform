@@ -550,7 +550,7 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                         <Input
                                             type="text"
                                             inputMode="numeric"
-                                            placeholder="1-12"
+                                            placeholder="0-12"
                                             {...field}
                                             value={field.value ?? ''}
                                             onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}
@@ -571,7 +571,7 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                                         <Input
                                             type="text"
                                             inputMode="numeric"
-                                            placeholder="1-12"
+                                            placeholder="0-12"
                                             {...field}
                                             value={field.value ?? ''}
                                             onChange={(e) => field.onChange(e.target.value === '' ? '' : e.target.value)}

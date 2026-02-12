@@ -1648,6 +1648,7 @@ export type Database = {
       }
       cleanup_expired_exam_sessions: { Args: never; Returns: number }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_admin_user: { Args: never; Returns: boolean }
       is_registration_open: {
         Args: {
           competition_row: Database["public"]["Tables"]["competitions"]["Row"]

@@ -20,7 +20,9 @@ export interface MockTest {
 
   // Metadata
   isPublished: boolean;
+  isLocked: boolean;
   isFree: boolean;
+  sortOrder: number;
 
   createdAt: string;
   updatedAt: string;

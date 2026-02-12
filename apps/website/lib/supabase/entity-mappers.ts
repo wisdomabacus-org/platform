@@ -298,7 +298,9 @@ export function mapDbMockTestToMockTest(mockTest: DbMockTest | DbMockTestWithSta
 
         // Metadata
         isPublished: mockTest.is_published ?? false,
+        isLocked,
         isFree: !isLocked, // Invert is_locked to get isFree
+        sortOrder: mockTest.sort_order ?? 0,
 
         createdAt: mockTest.created_at ?? new Date().toISOString(),
         updatedAt: mockTest.updated_at ?? new Date().toISOString(),
