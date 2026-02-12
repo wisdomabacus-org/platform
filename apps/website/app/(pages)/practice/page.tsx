@@ -1,46 +1,89 @@
-import { PracticeHeader } from "@/components/features/practice/practice-header";
-import { WorksheetGeneratorHero } from "@/components/features/practice/worksheet-generator-hero";
-import { CompetitionNudge } from "@/components/features/practice/competition-nudge";
+"use client";
+
+import { useEffect, useState } from "react";
 import { MockTestCard } from "@/components/features/practice/mock-test-card";
-import { getAllMockTestsServer } from "@/services/mock-tests.server";
+import { mockTestsService } from "@/services/mock-tests.service";
 import type { MockTest } from "@/types/mock-test";
 
+export default function PracticePage() {
+  const [mockTests, setMockTests] = useState<MockTest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function PracticePage() {
-  let mockTests: MockTest[] = [];
+  useEffect(() => {
+    let cancelled = false;
 
-  try {
-    mockTests = await getAllMockTestsServer();
-  } catch (error) {
-    console.error("Failed to fetch mock tests:", error);
-  }
+    setIsLoading(true);
+    mockTestsService.getAll()
+      .then((tests) => {
+        if (!cancelled) {
+          setMockTests(tests);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load mock tests:", err);
+          setError("Failed to load practice tests. Please try again.");
+          setIsLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   return (
-    <main className="min-h-screen bg-white">
-      <PracticeHeader />
-      <div className="container mx-auto px-4 py-12 max-w-5xl">
-        <WorksheetGeneratorHero />
-        <CompetitionNudge />
-        <div>
-          <h2 className="text-2xl font-bold text-[#121212] mb-6 flex items-center gap-2">
-            Online Mock Tests
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockTests.map((test) => (
-              <MockTestCard key={test.id} test={test} />
-            ))}
-          </div>
-          {mockTests.length === 0 && (
-            <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <div className="text-4xl mb-4">📝</div>
-              <h3 className="text-lg font-bold text-slate-900">No mock tests available</h3>
-              <p className="text-slate-500">Check back later for new practice tests.</p>
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-[#121212]">Practice Tests</h1>
+        <p className="text-slate-500 mt-2 text-sm">
+          Sharpen your skills with our curated mock tests. Track your progress and improve over time.
+        </p>
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-[280px] rounded-xl bg-slate-100 animate-pulse"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#121212] text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Mock Tests Grid */}
+      {!isLoading && !error && (
+        <>
+          {mockTests.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {mockTests.map((test) => (
+                <MockTestCard key={test.id} test={test} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-500">
+              <p className="text-lg font-medium">No practice tests available</p>
+              <p className="text-sm mt-1">Check back later for new tests!</p>
             </div>
           )}
-        </div>
-      </div>
-    </main>
+        </>
+      )}
+    </div>
   );
 }
-
-export const revalidate = 300;

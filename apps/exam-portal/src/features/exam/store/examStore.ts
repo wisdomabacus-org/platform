@@ -41,7 +41,7 @@ interface ExamState {
   ) => void;
   submitExam: () => void;
   resetExam: () => void;
-  
+
   // Storage key management
   getStorageKey: () => string;
   clearOldSessions: (currentToken: string) => void;
@@ -72,25 +72,24 @@ const BASE_STORAGE_KEY = "exam-session";
 
 // Get session-specific storage key
 const getStorageKeyForSession = (sessionToken: string | null): string => {
-  if (!sessionToken) return `${BASE_STORAGE_KEY}-temp`;
-  // Use a hash of the session token to keep key length reasonable
+  if (!sessionToken) return `${BASE_STORAGE_KEY}-default`;
   return `${BASE_STORAGE_KEY}-${sessionToken}`;
 };
 
 // Clear old session storage entries (keeps only current session)
 const clearOldSessionStorage = (currentToken: string | null) => {
   if (typeof window === "undefined") return;
-  
+
   const currentKey = getStorageKeyForSession(currentToken);
   const keysToRemove: string[] = [];
-  
+
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
     if (key && key.startsWith(BASE_STORAGE_KEY) && key !== currentKey) {
       keysToRemove.push(key);
     }
   }
-  
+
   keysToRemove.forEach(key => {
     try {
       sessionStorage.removeItem(key);
@@ -101,199 +100,203 @@ const clearOldSessionStorage = (currentToken: string | null) => {
   });
 };
 
-// Type for persisted state (only data, no actions)
-type PersistedExamState = Pick<
-  ExamState,
-  '_hasHydrated' | 'currentQuestion' | 'answers' | 'markedQuestions' | 'timeLeft' |
-  'isExamSubmitted' | 'examMetadata' | 'questions' | 'sessionToken'
->;
+// Track the current session token for the custom storage adapter
+// This is a module-level variable that gets updated when the store changes
+let _currentSessionToken: string | null = null;
 
 const useExamStoreBase = create<ExamState>()(
   devtools(
-    (set, get) => ({
-      // Initial State (before hydration)
-      _hasHydrated: false,
-      currentQuestion: 1,
-      answers: new Map(),
-      markedQuestions: new Set(),
-      timeLeft: 0,
-      isExamSubmitted: false,
-      examMetadata: null,
-      questions: [],
-      sessionToken: null,
-
-      // Actions
-      setSessionToken: (token) => {
-        const oldToken = get().sessionToken;
-        
-        // If token is changing, clear old session data
-        if (oldToken && oldToken !== token) {
-          console.log(`[ExamStore] Session token changed from ${oldToken?.slice(0, 8)}... to ${token.slice(0, 8)}...`);
-          clearOldSessionStorage(token);
-        }
-        
-        set({ sessionToken: token });
-      },
-
-      setCurrentQuestion: (questionNumber) =>
-        set({ currentQuestion: questionNumber }),
-
-      goToNextQuestion: () => {
-        const { currentQuestion, questions } = get();
-        if (currentQuestion < questions.length) {
-          set({ currentQuestion: currentQuestion + 1 });
-        }
-      },
-
-      goToPreviousQuestion: () => {
-        const { currentQuestion } = get();
-        if (currentQuestion > 1) {
-          set({ currentQuestion: currentQuestion - 1 });
-        }
-      },
-
-      setAnswer: (questionId, answerIndex) =>
-        set((state) => {
-          const currentAnswers = ensureMap(state.answers);
-          const newAnswers = new Map(currentAnswers);
-          newAnswers.set(questionId, answerIndex);
-          return { answers: newAnswers };
-        }),
-
-      toggleMarkForReview: (questionId) =>
-        set((state) => {
-          const currentMarked = ensureSet(state.markedQuestions);
-          const newMarked = new Set(currentMarked);
-          if (newMarked.has(questionId)) {
-            newMarked.delete(questionId);
-          } else {
-            newMarked.add(questionId);
-          }
-          return { markedQuestions: newMarked };
-        }),
-
-      decrementTime: () =>
-        set((state) => ({
-          timeLeft: Math.max(0, state.timeLeft - 1),
-        })),
-
-      setTimeLeft: (time) => set({ timeLeft: time }),
-
-      loadExam: (metadata, questions, savedAnswers?, timeRemaining?, resumeState?) => {
-        // Validate question count matches metadata
-        if (metadata.totalQuestions !== questions.length) {
-          console.warn(
-            `[ExamStore] Question count mismatch: metadata says ${metadata.totalQuestions}, but loaded ${questions.length} questions`
-          );
-        }
-        
-        set({
-          examMetadata: metadata,
-          questions,
-          // Use time remaining if provided (for resume), otherwise calculate from duration
-          timeLeft: timeRemaining ?? metadata.durationMinutes * 60,
-          // Restore last question position if resuming
-          currentQuestion: resumeState?.lastQuestionIndex ?? 1,
-          // Restore saved answers if provided
-          answers: savedAnswers ? new Map(Object.entries(savedAnswers)) : new Map(),
-          // Restore marked questions if resuming
-          markedQuestions: resumeState?.markedQuestions
-            ? new Set(resumeState.markedQuestions)
-            : new Set(),
-          isExamSubmitted: false,
-          sessionToken: metadata.examSessionId,
-        });
-        
-        // Clear any old sessions when loading a new exam
-        clearOldSessionStorage(metadata.examSessionId);
-      },
-
-      submitExam: () => set({ isExamSubmitted: true }),
-
-      resetExam: () => {
-        const token = get().sessionToken;
-        
-        // Clear session storage for current session
-        if (token) {
-          const storageKey = getStorageKeyForSession(token);
-          sessionStorage.removeItem(storageKey);
-          console.log(`[ExamStore] Cleared session storage for ${storageKey}`);
-        }
-        
-        // Clear all exam-related storage
-        clearOldSessionStorage(null);
-        
-        set({
-          _hasHydrated: true, // Keep hydrated after reset
-          currentQuestion: 1,
-          answers: new Map(),
-          markedQuestions: new Set(),
-          timeLeft: 0,
-          isExamSubmitted: false,
-          examMetadata: null,
-          questions: [],
-          sessionToken: null,
-        });
-      },
-
-      // Utility to get current storage key
-      getStorageKey: () => {
-        return getStorageKeyForSession(get().sessionToken);
-      },
-
-      // Clear old sessions utility
-      clearOldSessions: (currentToken) => {
-        clearOldSessionStorage(currentToken);
-      },
-    }),
-    { name: "ExamStore" }
-  )
-);
-
-// Wrap with persist middleware separately to handle dynamic storage key
-const useExamStorePersisted = create<ExamState>()(
-  devtools(
     persist(
       (set, get) => ({
-        ...useExamStoreBase.getState(),
-        
-        // Override loadExam to set session token before loading
+        // Initial State (before hydration)
+        _hasHydrated: false,
+        currentQuestion: 1,
+        answers: new Map(),
+        markedQuestions: new Set(),
+        timeLeft: 0,
+        isExamSubmitted: false,
+        examMetadata: null,
+        questions: [],
+        sessionToken: null,
+
+        // Actions
+        setSessionToken: (token) => {
+          const oldToken = get().sessionToken;
+
+          // If token is changing, clear old session data
+          if (oldToken && oldToken !== token) {
+            console.log(`[ExamStore] Session token changed from ${oldToken?.slice(0, 8)}... to ${token.slice(0, 8)}...`);
+            clearOldSessionStorage(token);
+          }
+
+          _currentSessionToken = token;
+          set({ sessionToken: token });
+        },
+
+        setCurrentQuestion: (questionNumber) =>
+          set({ currentQuestion: questionNumber }),
+
+        goToNextQuestion: () => {
+          const { currentQuestion, questions } = get();
+          if (currentQuestion < questions.length) {
+            set({ currentQuestion: currentQuestion + 1 });
+          }
+        },
+
+        goToPreviousQuestion: () => {
+          const { currentQuestion } = get();
+          if (currentQuestion > 1) {
+            set({ currentQuestion: currentQuestion - 1 });
+          }
+        },
+
+        setAnswer: (questionId, answerIndex) =>
+          set((state) => {
+            const currentAnswers = ensureMap(state.answers);
+            const newAnswers = new Map(currentAnswers);
+            newAnswers.set(questionId, answerIndex);
+            return { answers: newAnswers };
+          }),
+
+        toggleMarkForReview: (questionId) =>
+          set((state) => {
+            const currentMarked = ensureSet(state.markedQuestions);
+            const newMarked = new Set(currentMarked);
+            if (newMarked.has(questionId)) {
+              newMarked.delete(questionId);
+            } else {
+              newMarked.add(questionId);
+            }
+            return { markedQuestions: newMarked };
+          }),
+
+        decrementTime: () =>
+          set((state) => ({
+            timeLeft: Math.max(0, state.timeLeft - 1),
+          })),
+
+        setTimeLeft: (time) => set({ timeLeft: time }),
+
         loadExam: (metadata, questions, savedAnswers?, timeRemaining?, resumeState?) => {
-          // First set the session token so persist uses the right key
-          set({ sessionToken: metadata.examSessionId });
-          
-          // Then call the actual load logic
-          useExamStoreBase.getState().loadExam(
-            metadata,
+          // Validate question count matches metadata
+          if (metadata.totalQuestions !== questions.length) {
+            console.warn(
+              `[ExamStore] Question count mismatch: metadata says ${metadata.totalQuestions}, but loaded ${questions.length} questions`
+            );
+          }
+
+          // Update the module-level token tracker BEFORE setting state
+          // so the persist storage adapter uses the correct key
+          _currentSessionToken = metadata.examSessionId;
+
+          set({
+            examMetadata: metadata,
             questions,
-            savedAnswers,
-            timeRemaining,
-            resumeState
-          );
+            // Use time remaining if provided (for resume), otherwise calculate from duration
+            timeLeft: timeRemaining ?? metadata.durationMinutes * 60,
+            // Restore last question position if resuming
+            currentQuestion: resumeState?.lastQuestionIndex ?? 1,
+            // Restore saved answers if provided
+            answers: savedAnswers ? new Map(Object.entries(savedAnswers)) : new Map(),
+            // Restore marked questions if resuming
+            markedQuestions: resumeState?.markedQuestions
+              ? new Set(resumeState.markedQuestions)
+              : new Set(),
+            isExamSubmitted: false,
+            sessionToken: metadata.examSessionId,
+          });
+
+          // Clear any old sessions when loading a new exam
+          clearOldSessionStorage(metadata.examSessionId);
+        },
+
+        submitExam: () => set({ isExamSubmitted: true }),
+
+        resetExam: () => {
+          const token = get().sessionToken;
+
+          // Clear session storage for current session
+          if (token) {
+            const storageKey = getStorageKeyForSession(token);
+            sessionStorage.removeItem(storageKey);
+            console.log(`[ExamStore] Cleared session storage for ${storageKey}`);
+          }
+
+          // Clear all exam-related storage
+          clearOldSessionStorage(null);
+
+          _currentSessionToken = null;
+
+          set({
+            _hasHydrated: true, // Keep hydrated after reset
+            currentQuestion: 1,
+            answers: new Map(),
+            markedQuestions: new Set(),
+            timeLeft: 0,
+            isExamSubmitted: false,
+            examMetadata: null,
+            questions: [],
+            sessionToken: null,
+          });
+        },
+
+        // Utility to get current storage key
+        getStorageKey: () => {
+          return getStorageKeyForSession(get().sessionToken);
+        },
+
+        // Clear old sessions utility
+        clearOldSessions: (currentToken) => {
+          clearOldSessionStorage(currentToken);
         },
       }),
       {
-        name: BASE_STORAGE_KEY, // Base name - actual key is determined by getStorageKey
+        name: BASE_STORAGE_KEY,
         storage: {
-          getItem: (name) => {
-            // Get the current session token from state
-            const state = useExamStoreBase.getState();
-            const storageKey = getStorageKeyForSession(state.sessionToken);
-            
+          getItem: (_name) => {
+            // Try to find the right session key
+            // First check if we have a token from URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get("session");
+
+            // Use URL token, then module-level tracked token, then try default
+            const tokenToUse = urlToken || _currentSessionToken;
+            const storageKey = getStorageKeyForSession(tokenToUse);
+
             const str = sessionStorage.getItem(storageKey);
-            if (!str) return null;
-            try {
-              return JSON.parse(str);
-            } catch {
-              return null;
+            if (str) {
+              try {
+                return JSON.parse(str);
+              } catch {
+                return null;
+              }
             }
+
+            // If we didn't find data with the URL token, try scanning for any existing session
+            if (!str && !tokenToUse) {
+              for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key && key.startsWith(BASE_STORAGE_KEY) && key !== `${BASE_STORAGE_KEY}-default`) {
+                  const existingStr = sessionStorage.getItem(key);
+                  if (existingStr) {
+                    try {
+                      return JSON.parse(existingStr);
+                    } catch {
+                      continue;
+                    }
+                  }
+                }
+              }
+            }
+
+            return null;
           },
-          setItem: (name, value) => {
+          setItem: (_name, value) => {
             try {
               // Get the current session token from the value being stored
               const state = value.state as ExamState;
               const storageKey = getStorageKeyForSession(state.sessionToken);
-              
+
               // Serialize Map and Set to arrays
               const serializedState = {
                 currentQuestion: state.currentQuestion,
@@ -314,7 +317,10 @@ const useExamStorePersisted = create<ExamState>()(
                 state: serializedState,
                 version: value.version
               }));
-              
+
+              // Also update the module-level tracker
+              _currentSessionToken = state.sessionToken;
+
               if (import.meta.env.DEV) {
                 console.log(`[ExamStore] Persisted to ${storageKey}`);
               }
@@ -322,9 +328,8 @@ const useExamStorePersisted = create<ExamState>()(
               console.error("[ExamStore] Failed to store exam state:", e);
             }
           },
-          removeItem: (name) => {
-            const state = useExamStoreBase.getState();
-            const storageKey = getStorageKeyForSession(state.sessionToken);
+          removeItem: (_name) => {
+            const storageKey = getStorageKeyForSession(_currentSessionToken);
             sessionStorage.removeItem(storageKey);
           },
         },
@@ -336,10 +341,15 @@ const useExamStorePersisted = create<ExamState>()(
             state.markedQuestions = ensureSet(state.markedQuestions);
             state._hasHydrated = true;
 
+            // Update the module-level token tracker
+            if (state.sessionToken) {
+              _currentSessionToken = state.sessionToken;
+            }
+
             // Validate loaded session matches the URL token if available
             const urlParams = new URLSearchParams(window.location.search);
             const urlToken = urlParams.get("session");
-            
+
             if (urlToken && state.sessionToken && urlToken !== state.sessionToken) {
               console.warn(
                 `[ExamStore] URL token (${urlToken.slice(0, 8)}...) doesn't match stored session (${state.sessionToken.slice(0, 8)}...). This session will be cleared.`
@@ -350,7 +360,7 @@ const useExamStorePersisted = create<ExamState>()(
             }
 
             if (import.meta.env.DEV) {
-              console.log(`[ExamStore] Rehydrated with ${state.questions.length} questions`);
+              console.log(`[ExamStore] Rehydrated with ${state.questions.length} questions, token: ${state.sessionToken?.slice(0, 8) || 'null'}`);
               if (!(state.answers instanceof Map)) {
                 console.error('[ExamStore] answers is not a Map after hydration!', state.answers);
               }
@@ -359,8 +369,11 @@ const useExamStorePersisted = create<ExamState>()(
               }
             }
           } else {
-            // No persisted state - still mark as hydrated
-            useExamStoreBase.setState({ _hasHydrated: true });
+            // No persisted state - manually set hydrated flag
+            // We need to use setTimeout to ensure the store is created first
+            setTimeout(() => {
+              useExamStoreBase.setState({ _hasHydrated: true });
+            }, 0);
           }
         },
         // Only persist these fields (not functions, not _hasHydrated)
@@ -382,4 +395,4 @@ const useExamStorePersisted = create<ExamState>()(
 );
 
 // Create selectors
-export const useExamStore = createSelectors(useExamStorePersisted);
+export const useExamStore = createSelectors(useExamStoreBase);

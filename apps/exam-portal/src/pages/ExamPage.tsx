@@ -6,7 +6,6 @@ import { useExamTimer } from "@/features/exam/hooks/useExamTimer";
 import { useExamNavigation } from "@/features/exam/hooks/useExamNavigation";
 import { useExamSubmit } from "@/features/exam/hooks/useExamSubmit";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useHeartbeat } from "@/features/exam/hooks/useHeartbeat";
 import { useSubmitAnswerMutation } from "@/features/exam/api/exam.queries";
 
 // Components
@@ -62,8 +61,6 @@ const ExamPage = () => {
     unansweredCount,
     markedCount,
   } = useExamSubmit();
-  // Heartbeat for time sync and auto-submit detection
-  useHeartbeat();
 
   // API mutation for saving answers
   const { mutate: submitAnswerToBackend } = useSubmitAnswerMutation({

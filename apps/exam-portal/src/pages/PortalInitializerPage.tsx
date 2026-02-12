@@ -43,9 +43,7 @@ const PortalInitializerPage = () => {
   useEffect(() => {
     if (sessionTokenParam && sessionToken && sessionTokenParam !== sessionToken) {
       console.log("[PortalInitializer] New session detected, clearing query cache...");
-      // Remove cached exam session data
-      queryClient.removeQueries({ queryKey: examQueryKeys.session });
-      queryClient.removeQueries({ queryKey: examQueryKeys.heartbeat });
+      queryClient.removeQueries({ queryKey: examQueryKeys.session() });
     }
   }, [sessionTokenParam, sessionToken]);
 
@@ -70,7 +68,7 @@ const PortalInitializerPage = () => {
           setShouldFetch(true);
           return;
         }
-        
+
         // Same session token and valid data - resume existing session
         console.log("[PortalInitializer] Resuming persisted exam session with valid data");
         navigate("/exam");
@@ -83,9 +81,7 @@ const PortalInitializerPage = () => {
         console.log("[PortalInitializer] New session token detected, clearing old session data");
         resetExam();
         clearOldSessions(sessionTokenParam);
-        // Clear any cached queries
-        queryClient.removeQueries({ queryKey: examQueryKeys.session });
-        queryClient.removeQueries({ queryKey: examQueryKeys.heartbeat });
+        queryClient.removeQueries({ queryKey: examQueryKeys.session() });
       }
 
       // Set new session token and fetch from API
@@ -104,7 +100,7 @@ const PortalInitializerPage = () => {
         navigate("/error?code=INVALID_SESSION&message=Session+data+is+corrupted+or+expired");
         return;
       }
-      
+
       // Check if session is already over (expired or submitted)
       if (timeLeft <= 0 || isExamSubmitted) {
         console.log("[PortalInitializer] Session already completed, redirecting to completion");
@@ -118,8 +114,10 @@ const PortalInitializerPage = () => {
       return;
     }
 
-    // No persisted session and no URL token - error
-    navigate("/error?code=NO_SESSION&message=No+exam+session+found");
+    // No persisted session and no URL token - redirect to main platform
+    const mainPlatformUrl = import.meta.env.VITE_MAIN_PLATFORM_URL || 'http://localhost:3000';
+    console.log("[PortalInitializer] No session found, redirecting to main platform");
+    window.location.href = mainPlatformUrl;
   }, [hasHydrated, sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, isExamSubmitted, setSessionToken, resetExam, clearOldSessions, navigate]);
 
   // Call the initialization API only when we need to fetch

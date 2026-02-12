@@ -18,7 +18,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 13%;
 
-    /* 10% - Brand Orange */
+    /* 10% - Brand Deep Orange (default for Competition) */
     --primary: 25 95% 53%;
     --primary-foreground: 0 0% 100%;
 
@@ -52,6 +52,16 @@ All colors MUST be HSL.
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Blue theme for Mock Test panel */
+  .theme-mock-test {
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 217 91% 60%;
+    --question-current: 217 91% 60%;
   }
 
   .dark {
@@ -90,6 +100,16 @@ All colors MUST be HSL.
     --question-current: 25 95% 53%;
     --question-answered: 142 71% 45%;
     --question-marked: 45 93% 47%;
+  }
+
+  /* Blue dark theme for Mock Test */
+  .dark.theme-mock-test {
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 217 91% 60%;
+    --question-current: 217 91% 60%;
   }
 }
 
