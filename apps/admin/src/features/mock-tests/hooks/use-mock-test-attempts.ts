@@ -7,11 +7,11 @@ import { handleMutationError, handleMutationSuccess } from '@/lib/error-handler'
  * Hook to get all attempts for a specific mock test
  */
 export function useMockTestAttempts(
-  mockTestId: string, 
+  mockTestId: string,
   options?: { page?: number; limit?: number; enabled?: boolean }
 ) {
   const { page = 0, limit = 50, enabled = true } = options || {};
-  
+
   return useQuery({
     queryKey: [QUERY_KEYS.MOCK_TESTS, mockTestId, 'attempts', { page, limit }],
     queryFn: () => mockTestAttemptsService.getByMockTest(mockTestId, { page, limit }),
@@ -60,16 +60,16 @@ export function useCheckMockTestAttempt(userId: string | undefined, mockTestId: 
  */
 export function useDeleteMockTestAttempt() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, mockTestId }: { id: string; mockTestId: string }) =>
+    mutationFn: ({ id, mockTestId: _mockTestId }: { id: string; mockTestId: string }) =>
       mockTestAttemptsService.delete(id),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: [QUERY_KEYS.MOCK_TESTS, variables.mockTestId, 'attempts'] 
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.MOCK_TESTS, variables.mockTestId, 'attempts']
       });
-      queryClient.invalidateQueries({ 
-        queryKey: [QUERY_KEYS.MOCK_TESTS, variables.mockTestId, 'attempt-stats'] 
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.MOCK_TESTS, variables.mockTestId, 'attempt-stats']
       });
       handleMutationSuccess('Attempt record deleted successfully');
     },

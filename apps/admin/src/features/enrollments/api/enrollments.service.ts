@@ -90,7 +90,7 @@ export const enrollmentsService = {
                 console.error('Error creating payment:', payError);
                 throw new Error(extractErrorMessage(payError));
             }
-            
+
             finalPaymentId = payData.id;
         }
 
@@ -114,7 +114,7 @@ export const enrollmentsService = {
             console.error('Error creating enrollment:', error);
             throw new Error(extractErrorMessage(error));
         }
-        
+
         return data;
     },
 
@@ -174,7 +174,7 @@ export const enrollmentsService = {
             paymentAmount: data.payments?.amount || 0,
             isPaymentConfirmed: data.is_payment_confirmed || false,
             submissionId: data.submission_id,
-            registeredAt: new Date(data.created_at),
+            registeredAt: new Date(data.created_at || Date.now()),
         };
     },
 };

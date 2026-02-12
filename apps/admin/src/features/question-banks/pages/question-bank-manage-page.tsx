@@ -1,15 +1,49 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuestionBank } from '../hooks/use-question-banks';
+import { useQuestionBank, useBulkCreateQuestions, useBulkDeleteQuestions, useQuestions } from '../hooks/use-question-banks';
 import { Button } from '@/shared/components/ui/button';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { QuestionBankQuestions } from '../components/questions/question-bank-questions';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { CSVImportModal } from '../components/csv-import-modal';
+import { Question } from '../types/question-bank.types';
+import { toast } from 'sonner';
 
 export default function QuestionBankManagePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { data: bank, isLoading } = useQuestionBank(id!);
+    const { data: questions } = useQuestions(id!);
+    const { mutate: bulkCreate, isPending: isImporting } = useBulkCreateQuestions();
+    const { mutate: bulkDelete } = useBulkDeleteQuestions();
+    const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+
+    const handleCSVImport = (importedQuestions: Partial<Question>[]) => {
+        const existingIds = questions?.map((q: Question) => q.id) || [];
+
+        if (existingIds.length > 0) {
+            // Replace existing questions
+            bulkDelete({ bankId: id!, questionIds: existingIds }, {
+                onSuccess: () => {
+                    bulkCreate({ bankId: id!, questions: importedQuestions as any }, {
+                        onSuccess: () => {
+                            toast.success(`Replaced with ${importedQuestions.length} imported questions`);
+                            setIsCSVModalOpen(false);
+                        }
+                    });
+                },
+                onError: () => toast.error('Failed to clear existing questions'),
+            });
+        } else {
+            bulkCreate({ bankId: id!, questions: importedQuestions as any }, {
+                onSuccess: () => {
+                    toast.success(`Imported ${importedQuestions.length} questions successfully`);
+                    setIsCSVModalOpen(false);
+                }
+            });
+        }
+    };
 
     if (isLoading) {
         return (
@@ -43,7 +77,12 @@ export default function QuestionBankManagePage() {
                             Add, edit, or generate questions for <span className="font-medium text-foreground">{bank.title}</span>
                         </p>
                     </div>
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setIsCSVModalOpen(true)}
+                    >
                         <Upload className="h-4 w-4" />
                         Import CSV
                     </Button>
@@ -54,6 +93,14 @@ export default function QuestionBankManagePage() {
             <div className="flex-1 overflow-hidden">
                 <QuestionBankQuestions bankId={id!} />
             </div>
+
+            {/* CSV Import Modal */}
+            <CSVImportModal
+                open={isCSVModalOpen}
+                onOpenChange={setIsCSVModalOpen}
+                onImport={handleCSVImport}
+                isImporting={isImporting}
+            />
         </div>
     );
 }

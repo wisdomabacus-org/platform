@@ -15,7 +15,7 @@ export function extractErrorMessage(error: unknown): string {
   // Handle Supabase PostgrestError
   if (error && typeof error === 'object' && 'message' in error) {
     const pgError = error as PostgrestError;
-    
+
     // Check for specific PostgreSQL error codes
     if (pgError.code) {
       switch (pgError.code) {
@@ -37,7 +37,7 @@ export function extractErrorMessage(error: unknown): string {
           break;
       }
     }
-    
+
     // Return the message if available
     if (pgError.message && pgError.message !== 'Unknown error') {
       // Clean up common Supabase error messages
@@ -46,17 +46,17 @@ export function extractErrorMessage(error: unknown): string {
         .replace(/^PostgrestError: /, '');
     }
   }
-  
+
   // Handle standard Error objects
   if (error instanceof Error) {
     return error.message || 'An unexpected error occurred';
   }
-  
+
   // Handle string errors
   if (typeof error === 'string') {
     return error;
   }
-  
+
   // Handle objects with error property
   if (error && typeof error === 'object' && 'error' in error) {
     const errObj = error as { error: unknown };
@@ -67,7 +67,7 @@ export function extractErrorMessage(error: unknown): string {
       return (errObj.error as { message: string }).message;
     }
   }
-  
+
   return 'An unexpected error occurred';
 }
 
@@ -75,7 +75,7 @@ export function extractErrorMessage(error: unknown): string {
  * Handle errors from mutations and show appropriate toast notifications
  */
 export function handleMutationError(
-  error: unknown, 
+  error: unknown,
   options?: {
     fallbackMessage?: string;
     showToast?: boolean;
@@ -83,33 +83,33 @@ export function handleMutationError(
   }
 ): ErrorResponse {
   const { fallbackMessage = 'Operation failed', showToast = true, context } = options || {};
-  
+
   let message = extractErrorMessage(error);
   let code: string | undefined;
   let details: string | undefined;
-  
+
   // Extract additional details from PostgrestError
   if (error && typeof error === 'object') {
     const pgError = error as PostgrestError;
     code = pgError.code;
     details = pgError.details || undefined;
   }
-  
+
   // Use fallback if message is empty or generic
   if (!message || message === 'Unknown error' || message === 'An unexpected error occurred') {
     message = fallbackMessage;
   }
-  
+
   // Add context if provided
   const displayMessage = context ? `${context}: ${message}` : message;
-  
+
   if (showToast) {
     toast.error(displayMessage, {
       description: details,
       duration: 5000,
     });
   }
-  
+
   return { message: displayMessage, code, details };
 }
 
@@ -124,7 +124,7 @@ export function handleMutationSuccess(
   }
 ): void {
   const { description, duration = 3000 } = options || {};
-  
+
   toast.success(message, {
     description,
     duration,
@@ -143,7 +143,7 @@ export async function withErrorHandling<T>(
   }
 ): Promise<T> {
   const { fallbackMessage, context, onError } = options || {};
-  
+
   try {
     return await operation();
   } catch (error) {
@@ -152,11 +152,11 @@ export async function withErrorHandling<T>(
       showToast: true,
       context,
     });
-    
+
     if (onError) {
       onError(errorResponse);
     }
-    
+
     throw error;
   }
 }
@@ -168,7 +168,7 @@ export function isRLSError(error: unknown): boolean {
   if (error && typeof error === 'object') {
     const pgError = error as PostgrestError;
     return pgError.code === '42501' || // insufficient_privilege
-           (pgError.message && pgError.message.toLowerCase().includes('policy'));
+      !!(pgError.message && pgError.message.toLowerCase().includes('policy'));
   }
   return false;
 }
@@ -179,8 +179,8 @@ export function isRLSError(error: unknown): boolean {
 export function isNotFoundError(error: unknown): boolean {
   if (error && typeof error === 'object') {
     const pgError = error as PostgrestError;
-    return pgError.code === 'PGRST116' || 
-           (pgError.message && pgError.message.includes('no rows'));
+    return pgError.code === 'PGRST116' ||
+      !!(pgError.message && pgError.message.includes('no rows'));
   }
   return false;
 }

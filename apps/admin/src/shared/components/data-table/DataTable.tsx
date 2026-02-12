@@ -36,6 +36,8 @@ interface DataTableProps<TData, TValue> {
         pageSize: number
     }
     onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void
+    meta?: Record<string, any>
+    isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -45,6 +47,7 @@ export function DataTable<TData, TValue>({
     pageCount,
     pagination,
     onPaginationChange,
+    meta,
 }: DataTableProps<TData, TValue>) {
     const [rowSelection, setRowSelection] = React.useState({})
     const [columnVisibility, setColumnVisibility] =
@@ -84,6 +87,7 @@ export function DataTable<TData, TValue>({
         manualPagination: !!onPaginationChange,
         rowCount,
         pageCount,
+        meta,
     })
 
     return (

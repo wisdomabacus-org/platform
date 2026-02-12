@@ -70,7 +70,7 @@ export function QuestionBankQuestions({ bankId }: { bankId: string }) {
     };
 
     const handleManualSave = (question: Partial<Question>) => {
-        createQuestion({ bankId, ...question } as any, {
+        createQuestion({ bankId, data: question } as any, {
             onSuccess: () => {
                 toast.success('Question added successfully');
                 setIsManualOpen(false);

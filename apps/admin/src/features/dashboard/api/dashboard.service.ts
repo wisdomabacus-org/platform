@@ -4,11 +4,10 @@ import { DashboardData, ActivityItem } from '../types/dashboard.types';
 
 export const dashboardService = {
     getDashboardData: async (): Promise<DashboardData> => {
-        // 1. Fetch Total Users (EXCLUDE ADMIN USERS - only count students/regular users)
+        // 1. Fetch Total Users (students only — admins are in admin_users table, not profiles)
         const { count: totalUsers } = await supabase
             .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .neq('role', 'admin'); // Exclude admin users from count
+            .select('*', { count: 'exact', head: true });
 
         // 2. Fetch Active Competitions
         // Assuming 'open' or 'live' status means active

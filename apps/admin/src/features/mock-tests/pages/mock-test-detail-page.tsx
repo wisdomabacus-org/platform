@@ -21,7 +21,6 @@ import {
     BarChart3,
     Lock,
     Unlock,
-    Trash2,
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
@@ -101,16 +100,16 @@ export default function MockTestDetailPage() {
     const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
     const [attemptsPage, setAttemptsPage] = useState(0);
     const { confirm, DialogComponent } = useConfirmationDialog();
-    
+
     // Fetch attempts data
     const { data: attemptsData, isLoading: isLoadingAttempts } = useMockTestAttempts(id!, {
         page: attemptsPage,
         limit: 20,
     });
-    
+
     // Fetch attempt statistics
     const { data: attemptStats } = useMockTestAttemptStats(id!);
-    
+
     // Delete attempt mutation
     const { mutate: deleteAttempt } = useDeleteMockTestAttempt();
 
@@ -121,7 +120,7 @@ export default function MockTestDetailPage() {
             data: { is_published: !mockTest.is_published },
         });
     };
-    
+
     const handleDeleteAttempt = (attempt: MockTestAttempt) => {
         confirm({
             title: 'Delete Attempt Record?',
