@@ -9,16 +9,22 @@ import {
     Timer,
     Hash,
     Play,
-    Loader2
+    Loader2,
+    LogIn
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useStartExam } from "@/hooks/use-exam";
+import { useAuthModal } from "@/stores/modal-store";
+import { useAuthStore } from "@/stores/auth-store";
 import type { MockTest } from "@/types/mock-test";
+import { toast } from "sonner";
 
 export const MockTestCard = ({ test }: { test: MockTest }) => {
     const { mutate: startExam, isPending: isStartingExam } = useStartExam();
+    const { isAuthenticated } = useAuthStore();
+    const { onOpen: openAuthModal } = useAuthModal();
 
     // For now, consider isFree tests as unlocked, paid tests as locked
     const isLocked = !test.isFree;
@@ -31,6 +37,18 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
     };
 
     const handleStartPractice = () => {
+        // Check if user is logged in
+        if (!isAuthenticated) {
+            toast.error("Please login to start the practice test", {
+                action: {
+                    label: "Login",
+                    onClick: () => openAuthModal(),
+                },
+                duration: 5000,
+            });
+            return;
+        }
+
         startExam({
             examId: test.id,
             examType: 'mock-test'
@@ -100,6 +118,14 @@ export const MockTestCard = ({ test }: { test: MockTest }) => {
                 {isLocked ? (
                     <Button variant="outline" className="w-full border-slate-200 text-slate-400 bg-transparent hover:bg-transparent cursor-not-allowed" disabled>
                         <Lock className="mr-2 h-3.5 w-3.5" /> Unlock Test
+                    </Button>
+                ) : !isAuthenticated ? (
+                    <Button
+                        className="w-full bg-[#121212] text-white border-0 hover:bg-orange-600 shadow-md transition-all duration-300 font-bold group-hover:shadow-orange-200"
+                        onClick={handleStartPractice}
+                    >
+                        <LogIn className="mr-2 h-3.5 w-3.5" />
+                        Login to Start
                     </Button>
                 ) : (
                     <Button
