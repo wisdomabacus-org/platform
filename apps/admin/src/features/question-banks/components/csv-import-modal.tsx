@@ -129,7 +129,7 @@ function parseSheet(data: any[][]): ParsedRow[] {
         const operations = parsedOps.map(o => o.value);
         const correctAnswer = computeAnswer(parsedOps);
 
-        if (correctAnswer <= 0) {
+        if (correctAnswer < 0) {
             rows.push({
                 questionNo: qNo,
                 operations,
