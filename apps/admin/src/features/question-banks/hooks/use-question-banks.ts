@@ -1,10 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { questionBanksService } from '../api/question-banks.service';
 import { QUERY_KEYS } from '@/config/constants';
-import { toast } from 'sonner';
-
 import { QuestionBankFilters } from '../types/question-bank.types';
+import { handleMutationError, handleMutationSuccess } from '@/lib/error-handler';
 
 export function useQuestionBanks(filters: QuestionBankFilters = {}) {
     return useQuery({
@@ -27,11 +25,13 @@ export function useCreateQuestionBank() {
         mutationFn: questionBanksService.create,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
-            toast.success('Question bank created successfully');
+            handleMutationSuccess('Question bank created successfully');
         },
         onError: (error) => {
-            toast.error('Failed to create question bank');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to create question bank',
+                context: 'Create Question Bank',
+            });
         }
     });
 }
@@ -42,11 +42,13 @@ export function useUpdateQuestionBank() {
         mutationFn: ({ id, data }: { id: string; data: any }) => questionBanksService.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
-            toast.success('Question bank updated');
+            handleMutationSuccess('Question bank updated successfully');
         },
         onError: (error) => {
-            toast.error('Failed to update question bank');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update question bank',
+                context: 'Update Question Bank',
+            });
         }
     });
 }
@@ -57,11 +59,13 @@ export function useDeleteQuestionBank() {
         mutationFn: questionBanksService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
-            toast.success('Question bank deleted');
+            handleMutationSuccess('Question bank deleted successfully');
         },
         onError: (error) => {
-            toast.error('Failed to delete question bank');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to delete question bank',
+                context: 'Delete Question Bank',
+            });
         }
     });
 }
@@ -85,13 +89,14 @@ export function useCreateQuestion() {
             queryClient.invalidateQueries({
                 queryKey: [QUERY_KEYS.QUESTION_BANKS, variables.bankId, 'questions']
             });
-            // Also invalidate bank details to update count if needed
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
-            toast.success('Question added successfully');
+            handleMutationSuccess('Question added successfully');
         },
         onError: (error) => {
-            toast.error('Failed to add question');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to add question',
+                context: 'Add Question',
+            });
         }
     });
 }
@@ -105,11 +110,13 @@ export function useUpdateQuestion() {
             queryClient.invalidateQueries({
                 queryKey: [QUERY_KEYS.QUESTION_BANKS]
             });
-            toast.success('Question updated');
+            handleMutationSuccess('Question updated successfully');
         },
         onError: (error) => {
-            toast.error('Failed to update question');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update question',
+                context: 'Update Question',
+            });
         }
     });
 }
@@ -122,11 +129,13 @@ export function useDeleteQuestion() {
             queryClient.invalidateQueries({
                 queryKey: [QUERY_KEYS.QUESTION_BANKS]
             });
-            toast.success('Question deleted');
+            handleMutationSuccess('Question deleted successfully');
         },
         onError: (error) => {
-            toast.error('Failed to delete question');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to delete question',
+                context: 'Delete Question',
+            });
         }
     });
 }
@@ -141,10 +150,13 @@ export function useBulkCreateQuestions() {
                 queryKey: [QUERY_KEYS.QUESTION_BANKS, variables.bankId, 'questions']
             });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
+            handleMutationSuccess('Questions imported successfully');
         },
         onError: (error) => {
-            toast.error('Failed to import questions');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to import questions',
+                context: 'Import Questions',
+            });
         }
     });
 }
@@ -159,10 +171,13 @@ export function useBulkDeleteQuestions() {
                 queryKey: [QUERY_KEYS.QUESTION_BANKS, variables.bankId, 'questions']
             });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.QUESTION_BANKS] });
+            handleMutationSuccess('Questions deleted successfully');
         },
         onError: (error) => {
-            toast.error('Failed to delete questions');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to delete questions',
+                context: 'Delete Questions',
+            });
         }
     });
 }

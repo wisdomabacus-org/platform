@@ -13,6 +13,7 @@ import {
 import { Loader2, CheckCircle, Award, AlertCircle } from "lucide-react";
 import { useExamStore } from "@/features/exam/store/examStore";
 import { useSubmissionQuery } from "@/features/exam/api/submissions.queries";
+import { useClearExamCache } from "@/features/exam/api/exam.queries";
 
 const AUTO_REDIRECT_SECONDS = 45;
 const MAIN_PLATFORM_URL =
@@ -48,14 +49,19 @@ const CompletionPage = () => {
   const submissionId =
     submissionIdFromUrl || examMetadata?.submissionId || null;
 
+  // Clear the exam cache utility
+  const { clearAllExamCache } = useClearExamCache();
+
   // Clear the exam session on mount (exam is complete)
   useEffect(() => {
     // Small delay to ensure we've captured any needed data first
     const timer = setTimeout(() => {
       resetExam();
+      // Also clear all query cache to prevent stale data on next exam
+      clearAllExamCache();
     }, 500);
     return () => clearTimeout(timer);
-  }, [resetExam]);
+  }, [resetExam, clearAllExamCache]);
 
   // Fetch submission results
   const { data: response, isLoading, error } = useSubmissionQuery(submissionId);

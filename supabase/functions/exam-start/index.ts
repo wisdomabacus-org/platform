@@ -76,6 +76,78 @@ async function requireAuth(req: Request): Promise<{ id: string; email?: string }
     return user;
 }
 
+/**
+ * Validate that question bank grade range is compatible with mock test grade range
+ */
+function validateGradeCompatibility(
+    mockTestMinGrade: number,
+    mockTestMaxGrade: number,
+    qbMinGrade: number | null,
+    qbMaxGrade: number | null,
+    assignedGrades: number[]
+): { valid: boolean; error?: string } {
+    // Check if question bank grades overlap with mock test grades
+    const qbMin = qbMinGrade ?? 0;
+    const qbMax = qbMaxGrade ?? 12;
+    
+    // Check if there's any overlap
+    const hasOverlap = !(qbMax < mockTestMinGrade || qbMin > mockTestMaxGrade);
+    
+    if (!hasOverlap) {
+        return {
+            valid: false,
+            error: `Question bank grades (${qbMin}-${qbMax}) don't overlap with mock test grades (${mockTestMinGrade}-${mockTestMaxGrade})`
+        };
+    }
+    
+    // Check if assigned grades are within mock test range
+    const invalidGrades = assignedGrades.filter(
+        g => g < mockTestMinGrade || g > mockTestMaxGrade
+    );
+    
+    if (invalidGrades.length > 0) {
+        return {
+            valid: false,
+            error: `Question bank assigned for grades [${invalidGrades.join(",")}] but mock test only supports grades ${mockTestMinGrade}-${mockTestMaxGrade}`
+        };
+    }
+    
+    return { valid: true };
+}
+
+/**
+ * Validate question count matches expected total
+ */
+function validateQuestionCount(
+    expectedCount: number,
+    actualCount: number,
+    questionBankTitle: string
+): { valid: boolean; error?: string } {
+    if (actualCount === 0) {
+        return {
+            valid: false,
+            error: `Question bank "${questionBankTitle}" has no questions. Please contact support.`
+        };
+    }
+    
+    if (actualCount < expectedCount) {
+        return {
+            valid: false,
+            error: `Question bank "${questionBankTitle}" has only ${actualCount} questions, but this test requires ${expectedCount}. Please contact support.`
+        };
+    }
+    
+    if (actualCount > expectedCount) {
+        console.warn(
+            `Question bank "${questionBankTitle}" has ${actualCount} questions, ` +
+            `but mock test expects ${expectedCount}. ` +
+            `Only the first ${expectedCount} questions will be used.`
+        );
+    }
+    
+    return { valid: true };
+}
+
 serve(async (req: Request) => {
     // Handle CORS preflight
     const corsResponse = handleCors(req);
@@ -340,6 +412,27 @@ serve(async (req: Request) => {
                 return errorResponse(`No question bank for grade ${userGrade}`, 404);
             }
 
+            // Get question bank details for grade validation
+            const { data: qbDetails } = await supabase
+                .from("question_banks")
+                .select("min_grade, max_grade, title")
+                .eq("id", matchingQb.question_bank_id)
+                .single();
+
+            // Validate grade compatibility
+            const gradeValidation = validateGradeCompatibility(
+                comp.min_grade,
+                comp.max_grade,
+                qbDetails?.min_grade ?? null,
+                qbDetails?.max_grade ?? null,
+                matchingQb.grades
+            );
+
+            if (!gradeValidation.valid) {
+                console.error("Grade compatibility error:", gradeValidation.error);
+                return errorResponse(gradeValidation.error || "Grade configuration error", 500);
+            }
+
             // Get question count
             const { count: questionCount } = await supabase
                 .from("questions")
@@ -397,7 +490,7 @@ serve(async (req: Request) => {
                 .eq("mock_test_id", exam_id);
 
             if (!qbConfig?.length) {
-                return errorResponse("No question bank configured", 500);
+                return errorResponse("No question bank configured for this mock test. Please contact support.", 500);
             }
 
             const matchingQb = qbConfig.find((qb: { grades: number[] }) =>
@@ -408,15 +501,49 @@ serve(async (req: Request) => {
                 return errorResponse(`No question bank for grade ${userGrade}`, 404);
             }
 
+            // Get question bank details for validation
+            const { data: qbDetails } = await supabase
+                .from("question_banks")
+                .select("min_grade, max_grade, title")
+                .eq("id", matchingQb.question_bank_id)
+                .single();
+
+            // Validate grade compatibility
+            const gradeValidation = validateGradeCompatibility(
+                mockTest.min_grade,
+                mockTest.max_grade,
+                qbDetails?.min_grade ?? null,
+                qbDetails?.max_grade ?? null,
+                matchingQb.grades
+            );
+
+            if (!gradeValidation.valid) {
+                console.error("Grade compatibility error:", gradeValidation.error);
+                return errorResponse(gradeValidation.error || "Grade configuration error", 500);
+            }
+
+            // Get actual question count from the bank
             const { count: questionCount } = await supabase
                 .from("questions")
                 .select("*", { count: "exact", head: true })
                 .eq("question_bank_id", matchingQb.question_bank_id);
 
+            // Validate question count matches expected
+            const countValidation = validateQuestionCount(
+                mockTest.total_questions,
+                questionCount || 0,
+                qbDetails?.title || "Unknown"
+            );
+
+            if (!countValidation.valid) {
+                console.error("Question count validation failed:", countValidation.error);
+                return errorResponse(countValidation.error || "Question bank configuration error", 500);
+            }
+
             examDetails = {
                 title: mockTest.title,
                 duration: mockTest.duration,
-                total_questions: questionCount || 0,
+                total_questions: mockTest.total_questions, // Use expected count, not actual
                 total_marks: mockTest.total_questions,
                 question_bank_id: matchingQb.question_bank_id,
             };
@@ -440,6 +567,7 @@ serve(async (req: Request) => {
                     durationMinutes: examDetails.duration,
                     totalMarks: examDetails.total_marks,
                     questionBankId: examDetails.question_bank_id,
+                    expectedQuestionCount: examDetails.total_questions, // Store expected count for validation
                 },
                 total_questions: examDetails.total_questions,
                 started_at: startTime.toISOString(),

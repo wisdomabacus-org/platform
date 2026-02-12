@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCompetition, useUpdateCompetition } from '../hooks/use-competitions';
+import { useCompetition, useUpdateCompetition, useCompetitionParticipants, useCompetitionRevenue } from '../hooks/use-competitions';
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Badge } from '@/shared/components/ui/badge';
@@ -107,7 +107,10 @@ export default function CompetitionDetailPage() {
     const navigate = useNavigate();
     const { data: competition, isLoading } = useCompetition(id!);
     const { mutate: updateCompetition, isPending: isUpdating } = useUpdateCompetition();
+    const { data: participants, isLoading: isLoadingParticipants } = useCompetitionParticipants(id!);
+    const { data: revenueStats } = useCompetitionRevenue(id!);
     const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
+    const [participantsPage, setParticipantsPage] = useState(0);
 
     const handlePublish = () => {
         if (!competition) return;
@@ -142,7 +145,8 @@ export default function CompetitionDetailPage() {
     const status = competition.status || 'draft';
     const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
     const isPublished = status === 'published' || status === 'open' || status === 'live';
-    const estimatedRevenue = (competition.enrolled_count || 0) * (competition.enrollment_fee || 0);
+    const estimatedRevenue = revenueStats?.totalRevenue || (competition.enrolled_count || 0) * (competition.enrollment_fee || 0);
+    const confirmedEnrollments = revenueStats?.confirmedCount || competition.enrolled_count || 0;
 
     return (
         <div className="space-y-6 px-4 py-6">
@@ -198,9 +202,9 @@ export default function CompetitionDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                     title="Total Enrollments"
-                    value={competition.enrolled_count || 0}
+                    value={confirmedEnrollments}
                     icon={Users}
-                    description="Students registered"
+                    description={`${competition.enrolled_count || 0} total registered`}
                     iconColor="bg-blue-500/10 text-blue-500"
                 />
                 <StatCard
@@ -354,7 +358,7 @@ export default function CompetitionDetailPage() {
                             <div>
                                 <h3 className="text-base font-semibold">Enrolled Participants</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {competition.enrolled_count || 0} students enrolled in this competition
+                                    {participants?.length || competition.enrolled_count || 0} students enrolled in this competition
                                 </p>
                             </div>
                             <Button
@@ -365,13 +369,43 @@ export default function CompetitionDetailPage() {
                                 View All Enrollments
                             </Button>
                         </div>
-                        {(competition.enrolled_count || 0) === 0 ? (
+                        {(participants?.length || competition.enrolled_count || 0) === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-center">
                                 <Users className="h-10 w-10 text-muted-foreground/30" />
                                 <p className="mt-3 text-sm text-muted-foreground">No participants yet</p>
                             </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground">Click 'View All Enrollments' to see the full participant list.</p>
+                            <div className="space-y-2">
+                                {isLoadingParticipants ? (
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-2">
+                                        {participants?.slice(0, 10).map((participant: any) => (
+                                            <div key={participant.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                                <div>
+                                                    <p className="font-medium text-sm">{participant.userName}</p>
+                                                    <p className="text-xs text-muted-foreground">{participant.userPhone}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={participant.isPaymentConfirmed ? 'default' : 'secondary'}>
+                                                        {participant.isPaymentConfirmed ? 'Paid' : 'Unpaid'}
+                                                    </Badge>
+                                                    {participant.submissionId && (
+                                                        <Badge variant="outline">Submitted</Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {(participants?.length || 0) > 10 && (
+                                            <p className="text-center text-sm text-muted-foreground py-2">
+                                                +{(participants?.length || 0) - 10} more participants
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </TabsContent>

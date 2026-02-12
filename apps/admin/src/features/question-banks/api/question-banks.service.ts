@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { QuestionBank, QuestionBankFilters, Question } from '../types/question-bank.types';
+import { extractErrorMessage } from '@/lib/error-handler';
 
 export const questionBanksService = {
     getAll: async (filters: QuestionBankFilters = {}) => {
@@ -44,7 +45,8 @@ export const questionBanksService = {
             if (error.code === 'PGRST103' || error.message.includes('416')) {
                 return { data: [], total: 0, page, limit };
             }
-            throw error;
+            console.error('Error fetching question banks:', error);
+            throw new Error(extractErrorMessage(error));
         }
 
         return {
@@ -76,7 +78,10 @@ export const questionBanksService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
 
         return {
             id: data.id,
@@ -113,7 +118,10 @@ export const questionBanksService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
         return data;
     },
 
@@ -135,7 +143,10 @@ export const questionBanksService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
         return data;
     },
 
@@ -145,7 +156,10 @@ export const questionBanksService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
         return true;
     },
 
@@ -161,7 +175,10 @@ export const questionBanksService = {
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
 
         return data.map((q: any) => ({
             id: q.id,
@@ -290,7 +307,10 @@ export const questionBanksService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
         return true;
     },
 
@@ -318,7 +338,10 @@ export const questionBanksService = {
             .delete()
             .in('id', questionIds);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question bank:', error);
+            throw new Error(extractErrorMessage(error));
+        }
         return true;
     }
 };

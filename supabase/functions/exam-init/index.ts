@@ -48,10 +48,10 @@ serve(async (req: Request) => {
         // The session is already validated by authenticateBySessionToken
         // It checks: existence, status, and time-based expiration
 
-        // Get submission to find question bank ID
+        // Get submission to find question bank ID and validate expected question count
         const { data: submission, error: subError } = await supabase
             .from("submissions")
-            .select("exam_snapshot")
+            .select("exam_snapshot, total_questions")
             .eq("id", session.submission_id)
             .single();
 
@@ -63,6 +63,9 @@ serve(async (req: Request) => {
         if (!questionBankId) {
             return errorResponse("Question bank not found in submission", 500);
         }
+
+        const expectedQuestionCount = submission.exam_snapshot?.expectedQuestionCount 
+            || submission.total_questions;
 
         // Load questions (without correct answers)
         const { data: questions, error: questionsError } = await supabase
@@ -90,8 +93,42 @@ serve(async (req: Request) => {
             return errorResponse("Failed to load questions", 500);
         }
 
+        const actualQuestionCount = questions?.length || 0;
+
+        // Validate question count
+        if (actualQuestionCount === 0) {
+            console.error(`Question bank ${questionBankId} has no questions`);
+            return errorResponse(
+                "This exam has no questions configured. Please contact support.", 
+                500
+            );
+        }
+
+        if (actualQuestionCount < expectedQuestionCount) {
+            console.error(
+                `Question count mismatch for submission ${session.submission_id}: ` +
+                `expected ${expectedQuestionCount}, got ${actualQuestionCount}`
+            );
+            return errorResponse(
+                `Question bank has only ${actualQuestionCount} questions, ` +
+                `but ${expectedQuestionCount} were expected. Please contact support.`,
+                500
+            );
+        }
+
+        // If there are more questions than expected, log a warning and use only the expected number
+        let questionsToUse = questions || [];
+        if (actualQuestionCount > expectedQuestionCount) {
+            console.warn(
+                `Question bank has ${actualQuestionCount} questions, ` +
+                `but only ${expectedQuestionCount} expected. ` +
+                `Using first ${expectedQuestionCount} questions.`
+            );
+            questionsToUse = questionsToUse.slice(0, expectedQuestionCount);
+        }
+
         // Format questions for client (no correct answers!)
-        const formattedQuestions: ExamQuestionForClient[] = (questions || []).map(
+        const formattedQuestions: ExamQuestionForClient[] = questionsToUse.map(
             (q: {
                 id: string;
                 question_text: string;
@@ -117,6 +154,18 @@ serve(async (req: Request) => {
                     })),
             })
         );
+
+        // Verify formatted question count matches expected
+        if (formattedQuestions.length !== expectedQuestionCount) {
+            console.error(
+                `Final question count mismatch: ` +
+                `expected ${expectedQuestionCount}, formatted ${formattedQuestions.length}`
+            );
+            return errorResponse(
+                "Question processing error. Please contact support.",
+                500
+            );
+        }
 
         // Extract saved answers from session
         const savedAnswers: Record<string, number> = {};
@@ -160,6 +209,11 @@ serve(async (req: Request) => {
             saved_marked_questions: [],
         };
 
+        console.log(
+            `exam-init success: ${formattedQuestions.length} questions loaded ` +
+            `for submission ${session.submission_id}`
+        );
+
         return jsonResponse({ success: true, data: response });
     } catch (error) {
         console.error("exam-init error:", error);
@@ -188,4 +242,3 @@ serve(async (req: Request) => {
         return errorResponse("Internal server error", 500);
     }
 });
-

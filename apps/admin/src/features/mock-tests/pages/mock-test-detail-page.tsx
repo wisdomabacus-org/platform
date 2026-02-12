@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMockTest, useUpdateMockTest } from '../hooks/use-mock-tests';
+import { useMockTestAttempts, useMockTestAttemptStats, useDeleteMockTestAttempt } from '../hooks/use-mock-test-attempts';
 import { Button } from '@/shared/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Badge } from '@/shared/components/ui/badge';
@@ -20,11 +21,15 @@ import {
     BarChart3,
     Lock,
     Unlock,
+    Trash2,
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AssignQuestionBankModal } from '../components/assign-question-bank-modal';
+import { AttemptsTable } from '../components/attempts-table';
+import { useConfirmationDialog } from '@/hooks/use-confirmation-dialog';
+import type { MockTestAttempt } from '../api/mock-test-attempts.service';
 
 // Difficulty badge configuration
 const DIFFICULTY_CONFIG: Record<string, { color: string; bgColor: string }> = {
@@ -94,12 +99,39 @@ export default function MockTestDetailPage() {
     const { data: mockTest, isLoading } = useMockTest(id!);
     const { mutate: updateMockTest, isPending: isUpdating } = useUpdateMockTest();
     const [questionBankModalOpen, setQuestionBankModalOpen] = useState(false);
+    const [attemptsPage, setAttemptsPage] = useState(0);
+    const { confirm, DialogComponent } = useConfirmationDialog();
+    
+    // Fetch attempts data
+    const { data: attemptsData, isLoading: isLoadingAttempts } = useMockTestAttempts(id!, {
+        page: attemptsPage,
+        limit: 20,
+    });
+    
+    // Fetch attempt statistics
+    const { data: attemptStats } = useMockTestAttemptStats(id!);
+    
+    // Delete attempt mutation
+    const { mutate: deleteAttempt } = useDeleteMockTestAttempt();
 
     const handlePublish = () => {
         if (!mockTest) return;
         updateMockTest({
             id: id!,
             data: { is_published: !mockTest.is_published },
+        });
+    };
+    
+    const handleDeleteAttempt = (attempt: MockTestAttempt) => {
+        confirm({
+            title: 'Delete Attempt Record?',
+            description: `Are you sure you want to delete this attempt by ${attempt.userName}? This action cannot be undone and will permanently remove the student's test results.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            variant: 'destructive',
+            onConfirm: async () => {
+                deleteAttempt({ id: attempt.id, mockTestId: id! });
+            },
         });
     };
 
@@ -333,21 +365,40 @@ export default function MockTestDetailPage() {
                             <div>
                                 <h3 className="text-base font-semibold">Test Attempts</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {mockTest.attempt_count || 0} students have attempted this mock test
+                                    {attemptStats?.totalAttempts || mockTest.attempt_count || 0} students have attempted this mock test
                                 </p>
                             </div>
+                            {attemptStats && attemptStats.totalAttempts > 0 && (
+                                <div className="flex items-center gap-4 text-sm">
+                                    <div className="text-right">
+                                        <p className="text-muted-foreground">Average Score</p>
+                                        <p className="font-semibold">{attemptStats.averagePercentage}%</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-muted-foreground">Highest</p>
+                                        <p className="font-semibold text-emerald-600">{attemptStats.highestScore}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        {(mockTest.attempt_count || 0) === 0 ? (
+                        {(attemptStats?.totalAttempts || mockTest.attempt_count || 0) === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 text-center">
                                 <Users className="h-10 w-10 text-muted-foreground/30" />
                                 <p className="mt-3 text-sm text-muted-foreground">No attempts yet</p>
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-4">
-                                <p>Detailed attempt history will be available here.</p>
-                            </div>
+                            <AttemptsTable
+                                data={attemptsData?.data || []}
+                                total={attemptsData?.total || 0}
+                                page={attemptsPage}
+                                limit={20}
+                                onPageChange={setAttemptsPage}
+                                onDelete={handleDeleteAttempt}
+                                isLoading={isLoadingAttempts}
+                            />
                         )}
                     </div>
+                    <DialogComponent />
                 </TabsContent>
 
                 <TabsContent value="questions" className="mt-4">

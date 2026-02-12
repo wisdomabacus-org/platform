@@ -1,6 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { Competition, CompetitionInsert, CompetitionUpdate, CompetitionFilters } from '../types/competition.types';
+import { extractErrorMessage } from '@/lib/error-handler';
 
 export const competitionsService = {
     /**
@@ -32,7 +32,11 @@ export const competitionsService = {
 
         const { data, error, count } = await query;
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching competitions:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return {
             data: data as Competition[],
             count: count || 0,
@@ -53,7 +57,11 @@ export const competitionsService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching competition:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
     },
 
@@ -67,7 +75,11 @@ export const competitionsService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error creating competition:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data as Competition;
     },
 
@@ -82,7 +94,11 @@ export const competitionsService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error updating competition:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data as Competition;
     },
 
@@ -95,7 +111,11 @@ export const competitionsService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error deleting competition:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return true;
     },
 
@@ -104,7 +124,15 @@ export const competitionsService = {
      */
     updateSyllabus: async (competitionId: string, topics: any[]) => {
         // First delete existing syllabus
-        await supabase.from('competition_syllabus').delete().eq('competition_id', competitionId);
+        const { error: deleteError } = await supabase
+            .from('competition_syllabus')
+            .delete()
+            .eq('competition_id', competitionId);
+
+        if (deleteError) {
+            console.error('Error deleting syllabus:', deleteError);
+            throw new Error(extractErrorMessage(deleteError));
+        }
 
         // Then insert new ones
         if (topics.length === 0) return [];
@@ -118,7 +146,11 @@ export const competitionsService = {
             })))
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error inserting syllabus:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
     },
 
@@ -127,7 +159,15 @@ export const competitionsService = {
      */
     updatePrizes: async (competitionId: string, prizes: any[]) => {
         // First delete existing prizes
-        await supabase.from('competition_prizes').delete().eq('competition_id', competitionId);
+        const { error: deleteError } = await supabase
+            .from('competition_prizes')
+            .delete()
+            .eq('competition_id', competitionId);
+
+        if (deleteError) {
+            console.error('Error deleting prizes:', deleteError);
+            throw new Error(extractErrorMessage(deleteError));
+        }
 
         // Then insert new ones
         if (prizes.length === 0) return [];
@@ -140,7 +180,11 @@ export const competitionsService = {
             })))
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error inserting prizes:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
     },
 
@@ -156,7 +200,11 @@ export const competitionsService = {
             `)
             .eq('competition_id', competitionId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question banks:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
     },
 
@@ -165,7 +213,15 @@ export const competitionsService = {
      */
     assignQuestionBanks: async (competitionId: string, assignments: { question_bank_id: string, grades: number[] }[]) => {
         // First clear existing assignments
-        await supabase.from('competition_question_banks').delete().eq('competition_id', competitionId);
+        const { error: deleteError } = await supabase
+            .from('competition_question_banks')
+            .delete()
+            .eq('competition_id', competitionId);
+
+        if (deleteError) {
+            console.error('Error clearing question banks:', deleteError);
+            throw new Error(extractErrorMessage(deleteError));
+        }
 
         if (assignments.length === 0) return [];
 
@@ -178,7 +234,78 @@ export const competitionsService = {
             })))
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error assigning question banks:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
-    }
+    },
+
+    /**
+     * Get participants/enrollments for a competition
+     */
+    getParticipants: async (competitionId: string) => {
+        const { data, error } = await supabase
+            .from('enrollments')
+            .select(`
+                *,
+                profiles!user_id(id, student_name, phone, email, uid),
+                payments!payment_id(id, status, amount)
+            `)
+            .eq('competition_id', competitionId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching participants:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+
+        // Map the data to a cleaner format
+        return (data || []).map((e: any) => ({
+            id: e.id,
+            userId: e.user_id,
+            userName: e.profiles?.student_name || e.profiles?.email || 'Unknown',
+            userPhone: e.profiles?.phone || '—',
+            userUid: e.profiles?.uid || '—',
+            status: e.status,
+            paymentStatus: e.payments?.status || '—',
+            paymentAmount: e.payments?.amount || 0,
+            isPaymentConfirmed: e.is_payment_confirmed,
+            submissionId: e.submission_id,
+            enrolledAt: new Date(e.created_at),
+        }));
+    },
+
+    /**
+     * Get revenue statistics for a competition
+     */
+    getRevenueStats: async (competitionId: string) => {
+        const { data, error } = await supabase
+            .from('enrollments')
+            .select(`
+                is_payment_confirmed,
+                payments!payment_id(amount, status)
+            `)
+            .eq('competition_id', competitionId)
+            .eq('is_payment_confirmed', true);
+
+        if (error) {
+            console.error('Error fetching revenue stats:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+
+        const confirmedPayments = (data || []).filter((e: any) => 
+            e.is_payment_confirmed && e.payments?.status === 'SUCCESS'
+        );
+
+        const totalRevenue = confirmedPayments.reduce((sum: number, e: any) => 
+            sum + (e.payments?.amount || 0), 0
+        );
+
+        return {
+            totalRevenue,
+            confirmedCount: confirmedPayments.length,
+        };
+    },
 };

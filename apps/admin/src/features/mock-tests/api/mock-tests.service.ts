@@ -1,6 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { MockTest, MockTestFilters, MockTestAssignment } from '../types/mock-test.types';
+import { extractErrorMessage } from '@/lib/error-handler';
 
 export const mockTestsService = {
     getAll: async (filters?: MockTestFilters) => {
@@ -29,7 +29,10 @@ export const mockTestsService = {
 
         const { data, error, count } = await query;
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching mock tests:', error);
+            throw new Error(extractErrorMessage(error));
+        }
 
         return {
             data: data as MockTest[],
@@ -46,7 +49,11 @@ export const mockTestsService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching mock test:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data as MockTest;
     },
 
@@ -57,7 +64,11 @@ export const mockTestsService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error creating mock test:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return result as MockTest;
     },
 
@@ -69,7 +80,11 @@ export const mockTestsService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error updating mock test:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return result as MockTest;
     },
 
@@ -79,7 +94,11 @@ export const mockTestsService = {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error deleting mock test:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return true;
     },
 
@@ -89,13 +108,25 @@ export const mockTestsService = {
             .select('*, question_banks(*)')
             .eq('mock_test_id', mockTestId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching question banks:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
     },
 
     assignQuestionBanks: async (mockTestId: string, assignments: MockTestAssignment[]) => {
         // Clear existing
-        await supabase.from('mock_test_question_banks').delete().eq('mock_test_id', mockTestId);
+        const { error: deleteError } = await supabase
+            .from('mock_test_question_banks')
+            .delete()
+            .eq('mock_test_id', mockTestId);
+
+        if (deleteError) {
+            console.error('Error clearing question banks:', deleteError);
+            throw new Error(extractErrorMessage(deleteError));
+        }
 
         if (assignments.length === 0) return [];
 
@@ -108,7 +139,11 @@ export const mockTestsService = {
             })))
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error assigning question banks:', error);
+            throw new Error(extractErrorMessage(error));
+        }
+        
         return data;
-    }
+    },
 };

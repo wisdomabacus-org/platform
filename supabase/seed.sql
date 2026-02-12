@@ -617,11 +617,25 @@ INSERT INTO public.competition_question_banks (competition_id, question_bank_id,
 -- 10. LINK QUESTION BANKS TO MOCK TESTS
 -- ============================================
 
-INSERT INTO public.mock_test_question_banks (mock_test_id, question_bank_id, grades) VALUES
-('692484a4-767b-2be2-c4c2-aad600000001', '1b000001-0001-0001-0001-000000000005', ARRAY[0,1,2]),
-('692484a4-767b-2be2-c4c2-aad700000002', '1b000001-0001-0001-0001-000000000006', ARRAY[3,4,5]),
-('692484a4-767b-2be2-c4c2-aad800000003', '1b000001-0001-0001-0001-000000000003', ARRAY[3,4,5]),
-('692484a4-767b-2be2-c4c2-aad900000004', '1b000001-0001-0001-0001-000000000004', ARRAY[5,6,7,8]);
+-- NOTE: Mock tests should have their question banks assigned manually via the Admin Panel
+-- to ensure proper grade matching and question count alignment.
+-- The assignment below has been removed to prevent data mismatches where:
+-- 1. Question bank grade ranges don't match mock test grade ranges
+-- 2. Question bank doesn't have enough questions for the mock test's total_questions
+--
+-- Example: Foundation mock test expects 25 questions but linked bank only had 5
+--
+-- To assign question banks manually:
+-- 1. Go to Admin Panel > Mock Tests
+-- 2. Select a mock test
+-- 3. Click "Assign Question Banks"
+-- 4. Select appropriate banks that match the grade range and have sufficient questions
+
+-- INSERT INTO public.mock_test_question_banks (mock_test_id, question_bank_id, grades) VALUES
+-- ('692484a4-767b-2be2-c4c2-aad600000001', '1b000001-0001-0001-0001-000000000005', ARRAY[0,1,2]),
+-- ('692484a4-767b-2be2-c4c2-aad700000002', '1b000001-0001-0001-0001-000000000006', ARRAY[3,4,5]),
+-- ('692484a4-767b-2be2-c4c2-aad800000003', '1b000001-0001-0001-0001-000000000003', ARRAY[3,4,5]),
+-- ('692484a4-767b-2be2-c4c2-aad900000004', '1b000001-0001-0001-0001-000000000004', ARRAY[5,6,7,8]);
 
 -- ============================================
 -- VERIFICATION QUERIES (Optional - Run Manually)

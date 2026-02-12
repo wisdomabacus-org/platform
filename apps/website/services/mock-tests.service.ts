@@ -1,150 +1,120 @@
-/**
- * Mock Tests Service - Supabase Integration
- * 
- * Replaces the legacy Axios-based service with direct Supabase queries.
- */
-
 import { createClient } from '@/lib/supabase/client';
-import { createClient as createServerClient } from '@/lib/supabase/server';
-import {
-  mapDbMockTestToMockTest,
-  type DbMockTestWithStatus,
-} from '@/lib/supabase/entity-mappers';
-import type { MockTest } from '@/types/mock-test';
 
-/**
- * Get Supabase client
- */
-function getSupabaseClient() {
-  return createClient();
+const getSupabaseClient = () => createClient();
+
+export interface MockTestAttempt {
+  id: string;
+  mockTestId: string;
+  submissionId: string;
+  score: number;
+  totalMarks: number;
+  percentage: number;
+  submittedAt: string;
 }
 
 export const mockTestsService = {
   /**
-   * Get all available mock tests
-   * Returns grade-filtered tests for authenticated users, all published for anonymous
+   * Check if the current user has attempted a mock test
    */
-  getAll: async (): Promise<MockTest[]> => {
-    try {
-      const supabase = getSupabaseClient();
-
-      // Check if user is authenticated
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      let query = supabase
-        .from('mock_tests_with_status')
-        .select('*')
-        .eq('is_published', true)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-
-      // If user is authenticated, filter by their grade
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('student_grade')
-          .eq('id', user.id)
-          .single();
-
-        const userGrade = profile?.student_grade;
-        if (userGrade) {
-          query = query
-            .lte('min_grade', userGrade)
-            .gte('max_grade', userGrade);
-        }
-      }
-
-      const { data: mockTests, error } = await query;
-
-      if (error) {
-        console.error('Error fetching mock tests:', error.message);
-        return [];
-      }
-
-      return (mockTests || []).map((test) =>
-        mapDbMockTestToMockTest(test as unknown as DbMockTestWithStatus)
-      );
-    } catch (error) {
-      console.error('Failed to fetch mock tests:', error);
-      return [];
+  checkAttempt: async (mockTestId: string): Promise<{ hasAttempted: boolean; attempt?: MockTestAttempt }> => {
+    const supabase = getSupabaseClient();
+    
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return { hasAttempted: false };
     }
+
+    const { data, error } = await supabase
+      .from('user_mock_test_attempts')
+      .select(`
+        id,
+        mock_test_id,
+        submission_id,
+        submissions!submission_id(
+          score,
+          total_questions,
+          submitted_at
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('mock_test_id', mockTestId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking mock test attempt:', error);
+      return { hasAttempted: false };
+    }
+
+    if (!data) {
+      return { hasAttempted: false };
+    }
+
+    const submission = data.submissions as any;
+    const totalMarks = submission?.total_questions || 0;
+    const score = submission?.score || 0;
+    const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
+
+    return {
+      hasAttempted: true,
+      attempt: {
+        id: data.id,
+        mockTestId: data.mock_test_id,
+        submissionId: data.submission_id,
+        score: score,
+        totalMarks: totalMarks,
+        percentage: percentage,
+        submittedAt: submission?.submitted_at,
+      },
+    };
   },
 
   /**
-   * Get single mock test details
+   * Get all mock test attempts for the current user
    */
-  getById: async (id: string): Promise<MockTest> => {
+  getUserAttempts: async (): Promise<MockTestAttempt[]> => {
     const supabase = getSupabaseClient();
-
-    const { data: mockTest, error } = await supabase
-      .from('mock_tests_with_status')
-      .select('*')
-      .eq('id', id)
-      .eq('is_published', true)
-      .single();
-
-    if (error || !mockTest) {
-      throw new Error(`Mock test not found: ${id}`);
-    }
-
-    return mapDbMockTestToMockTest(mockTest as unknown as DbMockTestWithStatus);
-  },
-};
-
-// ==========================================
-// Server-side functions for SSR/ISR
-// ==========================================
-
-/**
- * Server-side: Get all mock tests
- * Use this in Server Components
- */
-export async function getAllMockTestsServer(): Promise<MockTest[]> {
-  try {
-    const supabase = await createServerClient();
-
-    const { data: mockTests, error } = await supabase
-      .from('mock_tests_with_status')
-      .select('*')
-      .eq('is_published', true)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
-
-    if (error) {
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       return [];
     }
 
-    return (mockTests || []).map((test) =>
-      mapDbMockTestToMockTest(test as unknown as DbMockTestWithStatus)
-    );
-  } catch {
-    return [];
-  }
-}
+    const { data, error } = await supabase
+      .from('user_mock_test_attempts')
+      .select(`
+        id,
+        mock_test_id,
+        submission_id,
+        submissions!submission_id(
+          score,
+          total_questions,
+          submitted_at
+        )
+      `)
+      .eq('user_id', user.id);
 
-/**
- * Server-side: Get mock test by ID
- * Use this in Server Components
- */
-export async function getMockTestByIdServer(id: string): Promise<MockTest | null> {
-  try {
-    const supabase = await createServerClient();
-
-    const { data: mockTest, error } = await supabase
-      .from('mock_tests_with_status')
-      .select('*')
-      .eq('id', id)
-      .eq('is_published', true)
-      .single();
-
-    if (error || !mockTest) {
-      return null;
+    if (error) {
+      console.error('Error fetching user attempts:', error);
+      return [];
     }
 
-    return mapDbMockTestToMockTest(mockTest as unknown as DbMockTestWithStatus);
-  } catch {
-    return null;
-  }
-}
+    return (data || []).map((item: any) => {
+      const submission = item.submissions as any;
+      const totalMarks = submission?.total_questions || 0;
+      const score = submission?.score || 0;
+      
+      return {
+        id: item.id,
+        mockTestId: item.mock_test_id,
+        submissionId: item.submission_id,
+        score: score,
+        totalMarks: totalMarks,
+        percentage: totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0,
+        submittedAt: submission?.submitted_at,
+      };
+    });
+  },
+};

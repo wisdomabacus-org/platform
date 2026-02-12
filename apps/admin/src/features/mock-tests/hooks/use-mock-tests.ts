@@ -1,9 +1,9 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockTestsService } from '../api/mock-tests.service';
 import { QUERY_KEYS } from '@/config/constants';
 import { toast } from 'sonner';
 import { MockTestFilters, MockTestAssignment } from '../types/mock-test.types';
+import { handleMutationError, handleMutationSuccess } from '@/lib/error-handler';
 
 export function useMockTests(filters?: MockTestFilters) {
     return useQuery({
@@ -26,11 +26,13 @@ export function useCreateMockTest() {
         mutationFn: mockTestsService.create,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MOCK_TESTS] });
-            toast.success('Mock test created successfully');
+            handleMutationSuccess('Mock test created successfully');
         },
         onError: (error) => {
-            toast.error('Failed to create mock test');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to create mock test',
+                context: 'Create Mock Test',
+            });
         }
     });
 }
@@ -42,11 +44,13 @@ export function useUpdateMockTest() {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MOCK_TESTS] });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MOCK_TESTS, variables.id] });
-            toast.success('Mock test updated successfully');
+            handleMutationSuccess('Mock test updated successfully');
         },
         onError: (error) => {
-            toast.error('Failed to update mock test');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update mock test',
+                context: 'Update Mock Test',
+            });
         }
     });
 }
@@ -57,11 +61,13 @@ export function useDeleteMockTest() {
         mutationFn: mockTestsService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MOCK_TESTS] });
-            toast.success('Mock test deleted');
+            handleMutationSuccess('Mock test deleted successfully');
         },
         onError: (error) => {
-            toast.error('Failed to delete mock test');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to delete mock test',
+                context: 'Delete Mock Test',
+            });
         }
     });
 }
@@ -81,11 +87,13 @@ export function useAssignMockTestQuestionBanks() {
             mockTestsService.assignQuestionBanks(id, assignments),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.MOCK_TESTS, variables.id, 'question-banks'] });
-            toast.success('Question banks assigned successfully');
+            handleMutationSuccess('Question banks assigned successfully');
         },
         onError: (error) => {
-            toast.error('Failed to assign question banks');
-            console.error(error);
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to assign question banks',
+                context: 'Assign Question Banks',
+            });
         }
     });
 }

@@ -4,8 +4,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { PortalLayout } from "@/components/layouts/PortalLayout";
-import { useInitializeExamQuery } from "@/features/exam/api/exam.queries";
+import { useInitializeExamQuery, examQueryKeys } from "@/features/exam/api/exam.queries";
 import { useExamStore } from "@/features/exam/store/examStore";
+import { queryClient } from "@/lib/queryClient";
 import type { ExamMetadata, Question } from "@/types/exam.types";
 
 // Loading messages to cycle through
@@ -22,6 +23,7 @@ const MESSAGE_CHANGE_INTERVAL = 1200; // 1.2 seconds
 const PortalInitializerPage = () => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [sessionValidated, setSessionValidated] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionTokenParam = searchParams.get("session");
@@ -29,12 +31,23 @@ const PortalInitializerPage = () => {
   const loadExam = useExamStore.use.loadExam();
   const setSessionToken = useExamStore.use.setSessionToken();
   const resetExam = useExamStore.use.resetExam();
+  const clearOldSessions = useExamStore.use.clearOldSessions();
   const sessionToken = useExamStore.use.sessionToken();
   const examMetadata = useExamStore.use.examMetadata();
   const questions = useExamStore.use.questions();
   const timeLeft = useExamStore.use.timeLeft();
   const isExamSubmitted = useExamStore.use.isExamSubmitted();
   const hasHydrated = useExamStore.use._hasHydrated();
+
+  // Clear query cache when session token changes (prevents stale data)
+  useEffect(() => {
+    if (sessionTokenParam && sessionToken && sessionTokenParam !== sessionToken) {
+      console.log("[PortalInitializer] New session detected, clearing query cache...");
+      // Remove cached exam session data
+      queryClient.removeQueries({ queryKey: examQueryKeys.session });
+      queryClient.removeQueries({ queryKey: examQueryKeys.heartbeat });
+    }
+  }, [sessionTokenParam, sessionToken]);
 
   // Check for existing persisted session on mount
   useEffect(() => {
@@ -45,8 +58,21 @@ const PortalInitializerPage = () => {
     if (sessionTokenParam) {
       // Check if the persisted session matches the URL token
       if (sessionToken === sessionTokenParam && examMetadata && questions.length > 0 && timeLeft > 0) {
-        // Same session token - resume existing session
-        console.log("Resuming persisted exam session");
+        // Validate that the stored questions count matches the exam metadata
+        if (questions.length !== examMetadata.totalQuestions) {
+          console.warn(
+            `[PortalInitializer] Question count mismatch: stored ${questions.length}, expected ${examMetadata.totalQuestions}. Fetching fresh data...`
+          );
+          // Clear stale data and fetch fresh
+          resetExam();
+          clearOldSessions(sessionTokenParam);
+          setSessionToken(sessionTokenParam);
+          setShouldFetch(true);
+          return;
+        }
+        
+        // Same session token and valid data - resume existing session
+        console.log("[PortalInitializer] Resuming persisted exam session with valid data");
         navigate("/exam");
         return;
       }
@@ -54,8 +80,12 @@ const PortalInitializerPage = () => {
       // DIFFERENT session token OR no persisted session - this is a NEW exam
       // We must reset the old session data before fetching new one
       if (sessionToken && sessionToken !== sessionTokenParam) {
-        console.log("New session token detected, clearing old session data");
+        console.log("[PortalInitializer] New session token detected, clearing old session data");
         resetExam();
+        clearOldSessions(sessionTokenParam);
+        // Clear any cached queries
+        queryClient.removeQueries({ queryKey: examQueryKeys.session });
+        queryClient.removeQueries({ queryKey: examQueryKeys.heartbeat });
       }
 
       // Set new session token and fetch from API
@@ -66,22 +96,31 @@ const PortalInitializerPage = () => {
 
     // No session token in URL - check for persisted session
     if (examMetadata && questions.length > 0 && sessionToken) {
+      // Validate question count before resuming
+      if (questions.length !== examMetadata.totalQuestions) {
+        console.warn(
+          `[PortalInitializer] Persisted session has question count mismatch. Redirecting to error...`
+        );
+        navigate("/error?code=INVALID_SESSION&message=Session+data+is+corrupted+or+expired");
+        return;
+      }
+      
       // Check if session is already over (expired or submitted)
       if (timeLeft <= 0 || isExamSubmitted) {
-        console.log("Session already completed, redirecting to completion");
+        console.log("[PortalInitializer] Session already completed, redirecting to completion");
         navigate("/complete");
         return;
       }
 
       // Resume the persisted session
-      console.log("Resuming persisted exam session (no URL token)");
+      console.log("[PortalInitializer] Resuming persisted exam session (no URL token)");
       navigate("/exam");
       return;
     }
 
     // No persisted session and no URL token - error
     navigate("/error?code=NO_SESSION&message=No+exam+session+found");
-  }, [hasHydrated, sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, isExamSubmitted, setSessionToken, resetExam, navigate]);
+  }, [hasHydrated, sessionTokenParam, sessionToken, examMetadata, questions, timeLeft, isExamSubmitted, setSessionToken, resetExam, clearOldSessions, navigate]);
 
   // Call the initialization API only when we need to fetch
   const { data: response, isLoading, error } = useInitializeExamQuery({
@@ -104,6 +143,16 @@ const PortalInitializerPage = () => {
     if (!response?.success || !response.data) return;
 
     const examData = response.data;
+
+    // Validate question count from server
+    if (examData.questions.length !== examData.totalQuestions) {
+      console.error(
+        `[PortalInitializer] Server returned question count mismatch: ` +
+        `${examData.questions.length} questions but totalQuestions=${examData.totalQuestions}`
+      );
+      navigate(`/error?code=INVALID_DATA&message=Question+count+mismatch+from+server`);
+      return;
+    }
 
     // Transform backend response into store format
     const metadata: ExamMetadata = {
@@ -149,11 +198,14 @@ const PortalInitializerPage = () => {
     const errorMessage =
       (error as Error)?.message || "Failed to initialize exam session";
 
-    // Determine error code based on message (you can customize this)
+    // Determine error code based on message
     let errorCode = "INITIALIZATION_FAILED";
-    if (errorMessage.includes("expired")) errorCode = "SESSION_EXPIRED";
-    if (errorMessage.includes("not found")) errorCode = "SESSION_NOT_FOUND";
-    if (errorMessage.includes("time")) errorCode = "EXAM_NOT_AVAILABLE";
+    if (errorMessage.toLowerCase().includes("expired")) errorCode = "SESSION_EXPIRED";
+    if (errorMessage.toLowerCase().includes("not found")) errorCode = "SESSION_NOT_FOUND";
+    if (errorMessage.toLowerCase().includes("time")) errorCode = "EXAM_NOT_AVAILABLE";
+    if (errorMessage.toLowerCase().includes("unauthorized")) errorCode = "UNAUTHORIZED";
+    if (errorMessage.toLowerCase().includes("already attempted")) errorCode = "ALREADY_ATTEMPTED";
+    if (errorMessage.toLowerCase().includes("grade")) errorCode = "GRADE_MISMATCH";
 
     navigate(
       `/error?code=${errorCode}&message=${encodeURIComponent(errorMessage)}`

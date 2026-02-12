@@ -1,9 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { competitionsService } from '../api/competitions.service';
 import { CompetitionFilters, CompetitionInsert, CompetitionUpdate } from '../types/competition.types';
 import { QUERY_KEYS } from '@/config/constants';
-import { toast } from 'sonner';
+import { handleMutationError, handleMutationSuccess } from '@/lib/error-handler';
 
 export function useCompetitions(filters?: CompetitionFilters & { page?: number; limit?: number }) {
     return useQuery({
@@ -27,10 +26,13 @@ export function useCreateCompetition() {
         mutationFn: (data: CompetitionInsert) => competitionsService.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS] });
-            toast.success('Competition created successfully');
+            handleMutationSuccess('Competition created successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to create competition');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to create competition',
+                context: 'Create Competition',
+            });
         },
     });
 }
@@ -44,10 +46,13 @@ export function useUpdateCompetition() {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS] });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, data.id] });
-            toast.success('Competition updated successfully');
+            handleMutationSuccess('Competition updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to update competition');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update competition',
+                context: 'Update Competition',
+            });
         },
     });
 }
@@ -59,10 +64,13 @@ export function useDeleteCompetition() {
         mutationFn: (id: string) => competitionsService.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS] });
-            toast.success('Competition deleted successfully');
+            handleMutationSuccess('Competition deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to delete competition');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to delete competition',
+                context: 'Delete Competition',
+            });
         },
     });
 }
@@ -75,10 +83,13 @@ export function useUpdateCompetitionSyllabus() {
             competitionsService.updateSyllabus(id, topics),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id] });
-            toast.success('Syllabus updated successfully');
+            handleMutationSuccess('Syllabus updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to update syllabus');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update syllabus',
+                context: 'Update Syllabus',
+            });
         },
     });
 }
@@ -91,10 +102,13 @@ export function useUpdateCompetitionPrizes() {
             competitionsService.updatePrizes(id, prizes),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id] });
-            toast.success('Prizes updated successfully');
+            handleMutationSuccess('Prizes updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to update prizes');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to update prizes',
+                context: 'Update Prizes',
+            });
         },
     });
 }
@@ -115,10 +129,31 @@ export function useAssignQuestionBanks() {
             competitionsService.assignQuestionBanks(id, assignments),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.COMPETITIONS, variables.id, 'question-banks'] });
-            toast.success('Question banks assigned successfully');
+            handleMutationSuccess('Question banks assigned successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.message || 'Failed to assign question banks');
+        onError: (error) => {
+            handleMutationError(error, {
+                fallbackMessage: 'Failed to assign question banks',
+                context: 'Assign Question Banks',
+            });
         },
+    });
+}
+
+// New hook to get competition participants/enrollments
+export function useCompetitionParticipants(competitionId: string) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.COMPETITIONS, competitionId, 'participants'],
+        queryFn: () => competitionsService.getParticipants(competitionId),
+        enabled: !!competitionId,
+    });
+}
+
+// New hook to get competition revenue statistics
+export function useCompetitionRevenue(competitionId: string) {
+    return useQuery({
+        queryKey: [QUERY_KEYS.COMPETITIONS, competitionId, 'revenue'],
+        queryFn: () => competitionsService.getRevenueStats(competitionId),
+        enabled: !!competitionId,
     });
 }
