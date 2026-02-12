@@ -296,6 +296,7 @@ const ExamPage = () => {
         onSaveAndNext={handleNext}
         canGoBack={canGoPrevious}
         canGoForward={canGoNext}
+        isMarked={isCurrentMarked}
         isMobile={isMobile}
       />
 

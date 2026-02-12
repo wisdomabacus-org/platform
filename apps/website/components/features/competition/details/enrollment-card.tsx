@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Clock, Users, Loader2 } from "lucide-react";
+import { Calendar, Clock, Users, Loader2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,7 +15,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useEnrollmentStatus } from "@/hooks/use-enrollments";
 import { useRazorpay } from "@/hooks/use-payment";
 import { useStartExam } from "@/hooks/use-exam";
-import { isInExamWindow, formatDateShort } from "@/lib/utils/date-helpers";
+import { isInExamWindow, isDatePassed, formatDateShort } from "@/lib/utils/date-helpers";
 import { toast } from "sonner";
 import { useAuthModal, useProfileModal } from "@/stores/modal-store";
 
@@ -30,6 +30,8 @@ interface EnrollmentCardProps {
     duration: number; // in minutes
     minGrade: number;
     maxGrade: number;
+    registrationEndDate?: string;
+    competitionStatus?: string;
 }
 
 export const EnrollmentCard = ({
@@ -42,7 +44,9 @@ export const EnrollmentCard = ({
     examTimeWindow,
     duration,
     minGrade,
-    maxGrade
+    maxGrade,
+    registrationEndDate,
+    competitionStatus
 }: EnrollmentCardProps) => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuthStore();
@@ -56,6 +60,11 @@ export const EnrollmentCard = ({
     const isEnrolled = enrollmentStatus?.isEnrolled || false;
     const canStartExam = isEnrolled && isInExamWindow(examWindowStart, examWindowEnd);
 
+    // Check if registration period has closed
+    const isRegistrationClosed = registrationEndDate
+        ? isDatePassed(registrationEndDate)
+        : (competitionStatus === 'closed' || competitionStatus === 'completed' || competitionStatus === 'live');
+
     const handleEnrollClick = async () => {
         // Check authentication
         if (!isAuthenticated || !user) {
@@ -64,8 +73,6 @@ export const EnrollmentCard = ({
         }
 
         // Check if profile is complete
-        // We can use the flag from user object or check fields manually if needed.
-        // Assuming user.isProfileComplete is reliable.
         if (!user.isProfileComplete) {
             toast.error("Please complete your profile to proceed");
             openProfileModal();
@@ -113,7 +120,17 @@ export const EnrollmentCard = ({
                     </>
                 ) : "Start Exam";
             }
-            return "Enrolled";
+            return "Enrolled ✓";
+        }
+
+        // Not enrolled — check if registration is closed
+        if (isRegistrationClosed) {
+            return (
+                <>
+                    <LockKeyhole className="mr-2 h-5 w-5" />
+                    Registration Closed
+                </>
+            );
         }
 
         return isProcessing ? (
@@ -127,15 +144,23 @@ export const EnrollmentCard = ({
     const isButtonDisabled = () => {
         if (isCheckingEnrollment || isProcessing || isStartingExam) return true;
         if (isEnrolled && !canStartExam) return true;
+        if (!isEnrolled && isRegistrationClosed) return true;
         return false;
     };
 
     const handleButtonClick = () => {
         if (isEnrolled && canStartExam) {
             handleStartExam();
-        } else if (!isEnrolled) {
+        } else if (!isEnrolled && !isRegistrationClosed) {
             handleEnrollClick();
         }
+    };
+
+    const getButtonStyles = () => {
+        if (!isEnrolled && isRegistrationClosed) {
+            return "w-full h-14 text-lg font-bold bg-slate-400 text-white cursor-not-allowed";
+        }
+        return "w-full h-14 text-lg font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed";
     };
 
     return (
@@ -204,12 +229,21 @@ export const EnrollmentCard = ({
                         </div>
                     </div>
                 )}
+
+                {/* Registration Closed Notice */}
+                {!isEnrolled && isRegistrationClosed && (
+                    <div className="pt-4 border-t border-slate-100">
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
+                            <p className="text-sm font-bold text-slate-500">Registration period has ended</p>
+                        </div>
+                    </div>
+                )}
             </CardContent>
 
             <CardFooter className="p-6 pt-0">
                 <Button
                     size="lg"
-                    className="w-full h-14 text-lg font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={getButtonStyles()}
                     onClick={handleButtonClick}
                     disabled={isButtonDisabled()}
                 >

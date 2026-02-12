@@ -12,6 +12,7 @@ import { ProfileHeader } from "@/components/features/profile/profile-header";
 import { ProfileSidebar, ProfileMobileNav, TabId } from "@/components/features/profile/profile-navigation";
 import { ProfileTab } from "@/components/features/profile/profile-tab";
 import { CompetitionsTab } from "@/components/features/profile/competitions-tab";
+import { MockTestsTab } from "@/components/features/profile/mock-tests-tab";
 import { SettingsTab } from "@/components/features/profile/settings-tab";
 
 export default function AccountPage() {
@@ -47,6 +48,8 @@ export default function AccountPage() {
         return <ProfileTab user={user} />;
       case "competitions":
         return <CompetitionsTab user={user} />;
+      case "mock-tests":
+        return <MockTestsTab user={user} />;
       case "settings":
         return <SettingsTab user={user} />;
     }

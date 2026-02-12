@@ -111,6 +111,8 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
                 duration={competition.duration}
                 minGrade={competition.minGrade}
                 maxGrade={competition.maxGrade}
+                registrationEndDate={competition.registrationEndDate}
+                competitionStatus={competition.status}
               />
 
               <div className="text-center">

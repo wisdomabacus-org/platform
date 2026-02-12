@@ -39,20 +39,23 @@ const ExamThemeProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AppRoutes = Routes as any;
+const AppRoute = Route as any;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <ExamThemeProvider>
         <Toaster />
         <Sonner />
-        <Routes>
-          <Route index path="/" element={<PortalInitializerPage />} />
-          <Route path="/exam" element={<ExamPage />} />
-          <Route path="/complete" element={<CompletionPage />} />
-          <Route path="/error" element={<ErrorPage />} />
-          <Route path="/instructions" element={<InstructionsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        <AppRoutes>
+          <AppRoute index path="/" element={<PortalInitializerPage />} />
+          <AppRoute path="/exam" element={<ExamPage />} />
+          <AppRoute path="/complete" element={<CompletionPage />} />
+          <AppRoute path="/error" element={<ErrorPage />} />
+          <AppRoute path="/instructions" element={<InstructionsPage />} />
+          <AppRoute path="*" element={<NotFoundPage />} />
+        </AppRoutes>
       </ExamThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>

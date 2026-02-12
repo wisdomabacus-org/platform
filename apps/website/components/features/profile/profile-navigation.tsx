@@ -1,7 +1,7 @@
-import { User, Trophy, Settings, LogOut, ChevronRight } from "lucide-react";
+import { User, Trophy, Settings, LogOut, ChevronRight, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabId = "profile" | "competitions" | "settings";
+export type TabId = "profile" | "competitions" | "mock-tests" | "settings";
 
 interface ProfileNavigationProps {
     activeTab: TabId;
@@ -12,6 +12,7 @@ interface ProfileNavigationProps {
 const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "competitions", label: "Competitions", icon: Trophy },
+    { id: "mock-tests", label: "Mock Tests", icon: BookOpen },
     { id: "settings", label: "Settings", icon: Settings },
 ] as const;
 
