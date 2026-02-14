@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Clock, Users, Loader2, LockKeyhole } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Calendar, Clock, Users, Loader2, LockKeyhole, CheckCircle2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,6 +19,7 @@ import { useStartExam } from "@/hooks/use-exam";
 import { isInExamWindow, isDatePassed, formatDateShort } from "@/lib/utils/date-helpers";
 import { toast } from "sonner";
 import { useAuthModal, useProfileModal } from "@/stores/modal-store";
+import { createClient } from "@/lib/supabase/client";
 
 interface EnrollmentCardProps {
     competitionId: string;
@@ -65,6 +67,32 @@ export const EnrollmentCard = ({
         ? isDatePassed(registrationEndDate)
         : (competitionStatus === 'closed' || competitionStatus === 'completed' || competitionStatus === 'live');
 
+    // Check if user has already completed this competition
+    const { data: submissionStatus, isLoading: isCheckingSubmission } = useQuery({
+        queryKey: ["competition-submission", competitionId, user?.id],
+        queryFn: async () => {
+            const supabase = createClient();
+            const { data, error } = await supabase
+                .from('submissions')
+                .select('id, status, score, submitted_at')
+                .eq('user_id', user!.id)
+                .eq('competition_id', competitionId)
+                .eq('exam_type', 'competition')
+                .maybeSingle();
+            
+            if (error) {
+                console.error("Error checking submission status:", error);
+                return null;
+            }
+            return data;
+        },
+        enabled: isAuthenticated && isEnrolled && !!user?.id,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
+    const hasCompleted = submissionStatus?.status === 'completed' || submissionStatus?.status === 'auto-submitted';
+    const isInProgress = submissionStatus?.status === 'in-progress';
+
     const handleEnrollClick = async () => {
         // Check authentication
         if (!isAuthenticated || !user) {
@@ -102,11 +130,20 @@ export const EnrollmentCard = ({
     };
 
     const getButtonContent = () => {
-        if (isCheckingEnrollment) {
+        if (isCheckingEnrollment || isCheckingSubmission) {
             return (
                 <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Checking...
+                </>
+            );
+        }
+
+        if (hasCompleted) {
+            return (
+                <>
+                    <CheckCircle2 className="mr-2 h-5 w-5" />
+                    Completed
                 </>
             );
         }
@@ -117,6 +154,11 @@ export const EnrollmentCard = ({
                     <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Starting Exam...
+                    </>
+                ) : isInProgress ? (
+                    <>
+                        <Loader2 className="mr-2 h-5 w-5" />
+                        Resume Exam
                     </>
                 ) : "Start Exam";
             }
@@ -142,7 +184,8 @@ export const EnrollmentCard = ({
     };
 
     const isButtonDisabled = () => {
-        if (isCheckingEnrollment || isProcessing || isStartingExam) return true;
+        if (isCheckingEnrollment || isCheckingSubmission || isProcessing || isStartingExam) return true;
+        if (hasCompleted) return true;
         if (isEnrolled && !canStartExam) return true;
         if (!isEnrolled && isRegistrationClosed) return true;
         return false;
@@ -157,6 +200,9 @@ export const EnrollmentCard = ({
     };
 
     const getButtonStyles = () => {
+        if (hasCompleted) {
+            return "w-full h-14 text-lg font-bold bg-green-600 text-white cursor-default";
+        }
         if (!isEnrolled && isRegistrationClosed) {
             return "w-full h-14 text-lg font-bold bg-slate-400 text-white cursor-not-allowed";
         }
@@ -221,12 +267,36 @@ export const EnrollmentCard = ({
                 {/* Enrollment Status Badge */}
                 {isEnrolled && (
                     <div className="pt-4 border-t border-slate-100">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                            <p className="text-sm font-bold text-green-700">✓ You're Enrolled!</p>
-                            {canStartExam && (
-                                <p className="text-xs text-green-600 mt-1">Exam window is now open</p>
-                            )}
-                        </div>
+                        {hasCompleted ? (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                <p className="text-sm font-bold text-green-700 flex items-center justify-center gap-2">
+                                    <Trophy className="h-4 w-4" />
+                                    Exam Completed!
+                                </p>
+                                <p className="text-xs text-green-600 mt-1">
+                                    Submitted on {submissionStatus?.submitted_at 
+                                        ? new Date(submissionStatus.submitted_at).toLocaleDateString('en-IN', { 
+                                            day: 'numeric', 
+                                            month: 'short', 
+                                            year: 'numeric' 
+                                          })
+                                        : 'N/A'
+                                    }
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                <p className="text-sm font-bold text-green-700">✓ You're Enrolled!</p>
+                                {canStartExam && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                        {isInProgress 
+                                            ? "You have an exam in progress. Click Resume to continue." 
+                                            : "Exam window is now open"
+                                        }
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 

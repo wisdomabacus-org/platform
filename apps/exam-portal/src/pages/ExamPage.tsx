@@ -1,5 +1,5 @@
 // src/pages/ExamPage.tsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useExamStore } from "@/features/exam/store/examStore";
 import { useExamTimer } from "@/features/exam/hooks/useExamTimer";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const ExamPage = () => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -82,11 +83,54 @@ const ExamPage = () => {
     }
   }, [hasHydrated, examMetadata, questions, navigate]);
 
-  // Auto-submit when time runs out
+  // Track auto-submit retry attempts
+  const autoSubmitRetriesRef = useRef(0);
+  const MAX_AUTO_SUBMIT_RETRIES = 3;
+  const isAutoSubmittingRef = useRef(false);
+
+  // Auto-submit when time runs out with retry logic
   useEffect(() => {
-    if (isTimeUp && !showSubmitDialog && !isExamSubmitted) {
-      // Time is up - auto-submit immediately
-      handleConfirmSubmit();
+    if (isTimeUp && !showSubmitDialog && !isExamSubmitted && !isAutoSubmittingRef.current) {
+      const attemptAutoSubmit = async () => {
+        isAutoSubmittingRef.current = true;
+        
+        while (autoSubmitRetriesRef.current < MAX_AUTO_SUBMIT_RETRIES) {
+          try {
+            console.log(`[ExamPage] Auto-submit attempt ${autoSubmitRetriesRef.current + 1}/${MAX_AUTO_SUBMIT_RETRIES}`);
+            const result = await handleConfirmSubmit();
+            
+            if (result) {
+              console.log("[ExamPage] Auto-submit successful");
+              toast.success("Exam submitted automatically");
+              return;
+            }
+          } catch (error) {
+            console.error(`[ExamPage] Auto-submit attempt ${autoSubmitRetriesRef.current + 1} failed:`, error);
+          }
+          
+          autoSubmitRetriesRef.current++;
+          
+          if (autoSubmitRetriesRef.current < MAX_AUTO_SUBMIT_RETRIES) {
+            // Wait before retrying (exponential backoff: 1s, 2s)
+            const delay = autoSubmitRetriesRef.current * 1000;
+            console.log(`[ExamPage] Retrying auto-submit in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+        
+        // All retries exhausted
+        console.error("[ExamPage] Auto-submit failed after all retries");
+        toast.error("Auto-submit failed. Please click 'Submit' button manually.", {
+          duration: 10000,
+          action: {
+            label: "Submit Now",
+            onClick: () => setShowSubmitDialog(true),
+          },
+        });
+        isAutoSubmittingRef.current = false;
+      };
+      
+      attemptAutoSubmit();
     }
   }, [isTimeUp, showSubmitDialog, isExamSubmitted]);
 
@@ -180,17 +224,25 @@ const ExamPage = () => {
   }, []);
 
   // Confirm submission - calls the exam-submit API
-  const handleConfirmSubmit = useCallback(async () => {
+  // Returns true if submission was successful, false otherwise
+  const handleConfirmSubmit = useCallback(async (): Promise<boolean> => {
     setShowSubmitDialog(false);
 
-    const result = await submitExamToApi();
+    try {
+      const result = await submitExamToApi();
 
-    if (result?.submissionId) {
-      // Navigate to completion page with submission ID
-      navigate(`/complete?submission=${result.submissionId}`);
-    } else {
-      // Navigate without submission ID - page will try to get from store
-      navigate("/complete");
+      if (result?.submissionId) {
+        // Navigate to completion page with submission ID
+        navigate(`/complete?submission=${result.submissionId}`);
+        return true;
+      } else {
+        // Navigate without submission ID - page will try to get from store
+        navigate("/complete");
+        return true; // Still considered successful if we got a result
+      }
+    } catch (error) {
+      console.error("[ExamPage] Submit failed:", error);
+      return false;
     }
   }, [navigate, submitExamToApi]);
 

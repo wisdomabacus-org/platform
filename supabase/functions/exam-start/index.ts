@@ -268,17 +268,40 @@ serve(async (req: Request) => {
                     });
                 }
 
-                // Session has expired - mark it and create new error
+                // Session has expired - mark it and allow creating a new session
+                // This handles edge cases where student's browser crashed or network failed
                 await supabase
                     .from("exam_sessions")
                     .update({ status: "expired" })
                     .eq("id", existingSession.id);
 
-                return errorResponse("Your previous session has expired", 410);
+                console.log("Existing session expired, will create new session for in-progress submission");
+                // Continue to create new session logic below (submission is still in-progress)
+                // Fall through to the "no valid session" block
             }
 
             // No valid session but submission exists in-progress state
             console.log("Creating new session for existing in-progress submission:", existingSubmission.id);
+
+            // For competitions, validate that exam window is still open before allowing restart
+            if (exam_type === "competition") {
+                const { data: competition, error: compError } = await supabase
+                    .from("competitions")
+                    .select("exam_window_start, exam_window_end")
+                    .eq("id", exam_id)
+                    .single();
+
+                if (compError || !competition) {
+                    return errorResponse("Competition not found", 404);
+                }
+
+                const now = new Date();
+                const windowEnd = new Date(competition.exam_window_end);
+
+                if (now > windowEnd) {
+                    return errorResponse("Exam window has closed. You can no longer restart this exam.", 403);
+                }
+            }
 
             // Get the original exam details to recreate the session
             const { data: existingSubDetails, error: subDetailsError } = await supabase

@@ -65,6 +65,12 @@ const errorConfigs = {
   },
 
   // Attempt errors
+  ALREADY_ATTEMPTED: {
+    title: "Exam Already Attempted",
+    message:
+      "You have already completed this exam. You cannot take it again.",
+    icon: Ban,
+  },
   ALREADY_TAKEN: {
     title: "Exam Already Attempted",
     message:
