@@ -8,6 +8,7 @@ import {
 import { ROUTES } from '@/config/constants';
 import { CompetitionFormValues } from '../types/competition-schema';
 import { PageHeader } from '@/shared/components/page-header';
+import { createISTDate } from '@/lib/date-utils';
 
 export default function CompetitionCreatePage() {
     const navigate = useNavigate();
@@ -18,17 +19,10 @@ export default function CompetitionCreatePage() {
     const handleSubmit = async (values: CompetitionFormValues) => {
         const { syllabus, prizes, ...basicInfo } = values;
 
-        // Combine exam_date with exam_window times to create proper timestamps
-        const examDate = values.exam_date;
-        const windowStart = values.exam_window_start;
-        const windowEnd = values.exam_window_end;
-
-        // Create proper timestamps by combining exam_date with the selected times
-        const examWindowStart = new Date(examDate);
-        examWindowStart.setHours(windowStart.getHours(), windowStart.getMinutes(), 0, 0);
-
-        const examWindowEnd = new Date(examDate);
-        examWindowEnd.setHours(windowEnd.getHours(), windowEnd.getMinutes(), 0, 0);
+        // Create IST timestamps for exam window times
+        // This ensures 9:00 AM IST is stored correctly and will be displayed as 9:00 AM
+        const examWindowStart = createISTDate(values.exam_date, values.exam_window_start);
+        const examWindowEnd = createISTDate(values.exam_date, values.exam_window_end);
 
         // Transform dates to ISO strings for DB
         const payload: any = {

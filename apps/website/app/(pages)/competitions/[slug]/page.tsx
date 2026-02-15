@@ -14,6 +14,7 @@ import { RulesSection } from "@/components/features/competition/details/rules-se
 import { RegistrationTimer } from "@/components/features/competition/details/registration-timer";
 import { EnrollmentCard } from "@/components/features/competition/details/enrollment-card";
 import { getCompetitionByIdServer } from "@/services/competitions.service";
+import { formatISTTime } from "@/lib/utils/date-helpers";
 import Link from "next/link";
 
 // ----------------------------------------------------------------------
@@ -44,17 +45,10 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
     notFound();
   }
 
-  // Format time window
-  const startTime = new Date(competition.examWindowStart).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-  const endTime = new Date(competition.examWindowEnd).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  // Format time window in IST
+  // This ensures 9:00 AM IST is displayed as 9:00 AM regardless of user's timezone
+  const startTime = formatISTTime(competition.examWindowStart);
+  const endTime = formatISTTime(competition.examWindowEnd);
   const examTimeWindow = `${startTime} - ${endTime}`;
 
   return (
