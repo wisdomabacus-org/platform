@@ -63,11 +63,23 @@ export default function CompetitionEditPage() {
     const handleSubmit = async (values: CompetitionFormValues) => {
         const { syllabus, prizes, ...basicInfo } = values;
 
+        // Combine exam_date with exam_window times to create proper timestamps
+        const examDate = values.exam_date;
+        const windowStart = values.exam_window_start;
+        const windowEnd = values.exam_window_end;
+
+        // Create proper timestamps by combining exam_date with the selected times
+        const examWindowStart = new Date(examDate);
+        examWindowStart.setHours(windowStart.getHours(), windowStart.getMinutes(), 0, 0);
+
+        const examWindowEnd = new Date(examDate);
+        examWindowEnd.setHours(windowEnd.getHours(), windowEnd.getMinutes(), 0, 0);
+
         const payload: any = {
             ...basicInfo,
             exam_date: values.exam_date.toISOString(),
-            exam_window_start: values.exam_window_start.toISOString(),
-            exam_window_end: values.exam_window_end.toISOString(),
+            exam_window_start: examWindowStart.toISOString(),
+            exam_window_end: examWindowEnd.toISOString(),
             registration_start_date: values.registration_start_date.toISOString(),
             registration_end_date: values.registration_end_date.toISOString(),
         };

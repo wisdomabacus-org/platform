@@ -23,6 +23,7 @@ import {
 } from '@/shared/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Calendar } from '@/shared/components/ui/calendar';
+import { TimePicker } from '@/shared/components/ui/time-picker';
 import { Separator } from '@/shared/components/ui/separator';
 import {
     CalendarIcon,
@@ -587,32 +588,18 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                             name="exam_window_start"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Exam Window Start</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !field.value && 'text-muted-foreground'
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {field.value ? format(field.value, 'PPP') : 'Select date'}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormDescription>When exam can be started</FormDescription>
+                                    <FormLabel className="flex items-center gap-2">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Exam Start Time
+                                    </FormLabel>
+                                    <FormControl>
+                                        <TimePicker
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            placeholder="Select start time"
+                                        />
+                                    </FormControl>
+                                    <FormDescription>When students can begin the exam</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -623,32 +610,18 @@ export function CompetitionForm({ initialData, onSubmit, isLoading }: Competitio
                             name="exam_window_end"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Exam Window End</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        'w-full justify-start text-left font-normal',
-                                                        !field.value && 'text-muted-foreground'
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {field.value ? format(field.value, 'PPP') : 'Select date'}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormDescription>Last time to submit</FormDescription>
+                                    <FormLabel className="flex items-center gap-2">
+                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Exam End Time
+                                    </FormLabel>
+                                    <FormControl>
+                                        <TimePicker
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            placeholder="Select end time"
+                                        />
+                                    </FormControl>
+                                    <FormDescription>Deadline to submit the exam</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
