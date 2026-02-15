@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Clock, Users, Loader2, LockKeyhole, CheckCircle2, Trophy } from "lucide-react";
+import { Calendar, Clock, Users, Loader2, LockKeyhole, CheckCircle2, Trophy, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -62,6 +61,9 @@ export const EnrollmentCard = ({
     const isEnrolled = enrollmentStatus?.isEnrolled || false;
     const canStartExam = isEnrolled && isInExamWindow(examWindowStart, examWindowEnd);
 
+    // Check if exam date has passed (post exam)
+    const isExamDatePassed = isDatePassed(examDate);
+
     // Check if registration period has closed
     const isRegistrationClosed = registrationEndDate
         ? isDatePassed(registrationEndDate)
@@ -93,6 +95,9 @@ export const EnrollmentCard = ({
     const hasCompleted = submissionStatus?.status === 'completed' || submissionStatus?.status === 'auto-submitted';
     const isInProgress = submissionStatus?.status === 'in-progress';
 
+    // Determine if exam is effectively completed (either user completed it or exam date passed while enrolled)
+    const isExamCompleted = hasCompleted || (isEnrolled && isExamDatePassed && !isInProgress);
+
     const handleEnrollClick = async () => {
         // Check authentication
         if (!isAuthenticated || !user) {
@@ -123,6 +128,15 @@ export const EnrollmentCard = ({
     };
 
     const handleStartExam = () => {
+        // Only allow starting if user is enrolled and within exam window
+        if (!isEnrolled) {
+            toast.error("You are not enrolled in this competition. Please enroll first.");
+            return;
+        }
+        if (!isInExamWindow(examWindowStart, examWindowEnd)) {
+            toast.error("The exam window is not currently open. Please check the exam schedule.");
+            return;
+        }
         startExam({
             examId: competitionId,
             examType: 'competition'
@@ -139,7 +153,8 @@ export const EnrollmentCard = ({
             );
         }
 
-        if (hasCompleted) {
+        // Completed state (either user completed or exam date passed)
+        if (isExamCompleted) {
             return (
                 <>
                     <CheckCircle2 className="mr-2 h-5 w-5" />
@@ -148,21 +163,31 @@ export const EnrollmentCard = ({
             );
         }
 
+        // In progress state
+        if (isInProgress) {
+            return isStartingExam ? (
+                <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Starting Exam...
+                </>
+            ) : (
+                <>
+                    <Loader2 className="mr-2 h-5 w-5" />
+                    Resume Exam
+                </>
+            );
+        }
+
+        // Always show "Start Exam" for enrolled users (disabled if window not open)
         if (isEnrolled) {
-            if (canStartExam) {
-                return isStartingExam ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Starting Exam...
-                    </>
-                ) : isInProgress ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5" />
-                        Resume Exam
-                    </>
-                ) : "Start Exam";
-            }
-            return "Enrolled ✓";
+            return isStartingExam ? (
+                <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Starting Exam...
+                </>
+            ) : (
+                "Start Exam"
+            );
         }
 
         // Not enrolled — check if registration is closed
@@ -185,9 +210,12 @@ export const EnrollmentCard = ({
 
     const isButtonDisabled = () => {
         if (isCheckingEnrollment || isCheckingSubmission || isProcessing || isStartingExam) return true;
-        if (hasCompleted) return true;
+        // Disable if exam is completed (either by user or exam date passed)
+        if (isExamCompleted) return true;
+        // Disable Start Exam if user is enrolled but can't start (window not open)
         if (isEnrolled && !canStartExam) return true;
-        if (!isEnrolled && isRegistrationClosed) return true;
+        // Disable if not enrolled (Start Exam button should be disabled with message)
+        if (!isEnrolled) return true;
         return false;
     };
 
@@ -200,14 +228,49 @@ export const EnrollmentCard = ({
     };
 
     const getButtonStyles = () => {
-        if (hasCompleted) {
+        // Completed state - green
+        if (isExamCompleted) {
             return "w-full h-14 text-lg font-bold bg-green-600 text-white cursor-default";
         }
-        if (!isEnrolled && isRegistrationClosed) {
+        // Not enrolled - disabled style (for Start Exam button)
+        if (!isEnrolled) {
             return "w-full h-14 text-lg font-bold bg-slate-400 text-white cursor-not-allowed";
         }
+        // Enrolled but can't start yet - disabled orange
+        if (isEnrolled && !canStartExam) {
+            return "w-full h-14 text-lg font-bold bg-orange-400 text-white cursor-not-allowed";
+        }
+        // Default active state
         return "w-full h-14 text-lg font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-200 disabled:opacity-50 disabled:cursor-not-allowed";
     };
+
+    // Get status message to show below button
+    const getButtonStatusMessage = () => {
+        if (isCheckingEnrollment || isCheckingSubmission) return null;
+        
+        // Not enrolled - show message
+        if (!isEnrolled && !isRegistrationClosed) {
+            return {
+                text: "You are not enrolled",
+                type: "error" as const
+            };
+        }
+        
+        // Enrolled but exam window hasn't started yet
+        if (isEnrolled && !canStartExam && !isExamCompleted && !isInProgress) {
+            const examWindowStarted = isDatePassed(examWindowStart);
+            if (!examWindowStarted) {
+                return {
+                    text: `Exam window opens on ${formatDateShort(examWindowStart)}`,
+                    type: "info" as const
+                };
+            }
+        }
+        
+        return null;
+    };
+
+    const statusMessage = getButtonStatusMessage();
 
     return (
         <Card className="border-slate-200 shadow-lg overflow-hidden">
@@ -284,6 +347,13 @@ export const EnrollmentCard = ({
                                     }
                                 </p>
                             </div>
+                        ) : isExamDatePassed ? (
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
+                                <p className="text-sm font-bold text-slate-500 flex items-center justify-center gap-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    Exam Period Ended
+                                </p>
+                            </div>
                         ) : (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                                 <p className="text-sm font-bold text-green-700">✓ You're Enrolled!</p>
@@ -310,7 +380,7 @@ export const EnrollmentCard = ({
                 )}
             </CardContent>
 
-            <CardFooter className="p-6 pt-0">
+            <CardFooter className="p-6 pt-0 flex flex-col gap-2">
                 <Button
                     size="lg"
                     className={getButtonStyles()}
@@ -319,6 +389,15 @@ export const EnrollmentCard = ({
                 >
                     {getButtonContent()}
                 </Button>
+                
+                {/* Status message below button */}
+                {statusMessage && (
+                    <p className={`text-[10px] text-center ${
+                        statusMessage.type === 'error' ? 'text-red-500' : 'text-slate-500'
+                    }`}>
+                        {statusMessage.text}
+                    </p>
+                )}
             </CardFooter>
         </Card>
     );
