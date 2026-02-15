@@ -192,6 +192,16 @@ export const EnrollmentCard = ({
 
         // Not enrolled — check if registration is closed
         if (isRegistrationClosed) {
+            // Show Start Exam (Disabled) if exam is not over yet
+            if (!isExamDatePassed) {
+                return (
+                    <>
+                        <Loader2 className="mr-2 h-5 w-5 hidden" /> {/* Keeping structure similar for sizing if needed, or just icon */}
+                        Start Exam
+                    </>
+                );
+            }
+
             return (
                 <>
                     <LockKeyhole className="mr-2 h-5 w-5" />
@@ -234,6 +244,10 @@ export const EnrollmentCard = ({
         }
         // Not enrolled - disabled style (for Start Exam button)
         if (!isEnrolled) {
+            // If registration closed and exam not passed, use Orange (Disabled) to match Start Exam look
+            if (isRegistrationClosed && !isExamDatePassed) {
+                return "w-full h-14 text-lg font-bold bg-orange-400 text-white cursor-not-allowed";
+            }
             return "w-full h-14 text-lg font-bold bg-slate-400 text-white cursor-not-allowed";
         }
         // Enrolled but can't start yet - disabled orange

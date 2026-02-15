@@ -210,8 +210,8 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                     onClick={handleStartExam}
                     disabled={isDisabled}
                     className={`w-full h-11 font-bold text-base shadow-lg transition-all ${canStartExam
-                            ? "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-200"
-                            : "bg-orange-400 text-white cursor-not-allowed"
+                        ? "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-200"
+                        : "bg-orange-400 text-white cursor-not-allowed"
                         }`}
                 >
                     {isStartingExam ? (
@@ -229,8 +229,36 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
             );
         }
 
-        // Not enrolled - show Enroll Now or Registration Closed
         if (isRegistrationClosed) {
+            // If we are in the exam window (or strictly speaking, if the exam has not ended yet, 
+            // but the user logic implies "on the exam date" so let's stick to showing it when start logic applies
+            // or maybe just "Start Exam" disabled generally if registration is closed but exam not passed?
+            // User said: "registration has ended was showing up that was okay... but for the non enrolled users on the exam date... disabled start exam button"
+
+            // If the exam window is active (or even before it starts?), showing "Start Exam" (Disabled) aligns with the event.
+            // But strict request: "on the exam date". 
+            // Let's use !isExamDatePassed to show "Start Exam" (Disabled) instead of "Registration Closed" 
+            // if we are past legacy registration but before exam end.
+
+            // Actually, checking isInExamWindow(data.examWindowStart, data.examWindowEnd) might be more precise 
+            // if we want to retain "Registration Closed" before the window opens.
+            // Let's assume !isExamDatePassed is the safe bet to avoid flicker, but based on "showing up was okay", 
+            // I'll check if we are effectively "complete" with registration but waiting for exam.
+
+            const showStartExam = !isExamDatePassed;
+
+            if (showStartExam) {
+                return (
+                    <Button
+                        disabled
+                        className="w-full h-11 font-bold text-base bg-orange-400 text-white cursor-not-allowed"
+                    >
+                        <Play className="mr-2 h-4 w-4" />
+                        Start Exam
+                    </Button>
+                );
+            }
+
             return (
                 <Button
                     disabled
