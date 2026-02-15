@@ -62,7 +62,7 @@ export const EnrollmentCard = ({
     const canStartExam = isEnrolled && isInExamWindow(examWindowStart, examWindowEnd);
 
     // Check if exam date has passed (post exam)
-    const isExamDatePassed = isDatePassed(examDate);
+    const isExamDatePassed = isDatePassed(examWindowEnd);
 
     // Check if registration period has closed
     const isRegistrationClosed = registrationEndDate
@@ -81,7 +81,7 @@ export const EnrollmentCard = ({
                 .eq('competition_id', competitionId)
                 .eq('exam_type', 'competition')
                 .maybeSingle();
-            
+
             if (error) {
                 console.error("Error checking submission status:", error);
                 return null;
@@ -247,7 +247,7 @@ export const EnrollmentCard = ({
     // Get status message to show below button
     const getButtonStatusMessage = () => {
         if (isCheckingEnrollment || isCheckingSubmission) return null;
-        
+
         // Not enrolled - show message
         if (!isEnrolled && !isRegistrationClosed) {
             return {
@@ -255,7 +255,7 @@ export const EnrollmentCard = ({
                 type: "error" as const
             };
         }
-        
+
         // Enrolled but exam window hasn't started yet
         if (isEnrolled && !canStartExam && !isExamCompleted && !isInProgress) {
             const examWindowStarted = isDatePassed(examWindowStart);
@@ -266,7 +266,7 @@ export const EnrollmentCard = ({
                 };
             }
         }
-        
+
         return null;
     };
 
@@ -337,12 +337,12 @@ export const EnrollmentCard = ({
                                     Exam Completed!
                                 </p>
                                 <p className="text-xs text-green-600 mt-1">
-                                    Submitted on {submissionStatus?.submitted_at 
-                                        ? new Date(submissionStatus.submitted_at).toLocaleDateString('en-IN', { 
-                                            day: 'numeric', 
-                                            month: 'short', 
-                                            year: 'numeric' 
-                                          })
+                                    Submitted on {submissionStatus?.submitted_at
+                                        ? new Date(submissionStatus.submitted_at).toLocaleDateString('en-IN', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            year: 'numeric'
+                                        })
                                         : 'N/A'
                                     }
                                 </p>
@@ -359,8 +359,8 @@ export const EnrollmentCard = ({
                                 <p className="text-sm font-bold text-green-700">✓ You're Enrolled!</p>
                                 {canStartExam && (
                                     <p className="text-xs text-green-600 mt-1">
-                                        {isInProgress 
-                                            ? "You have an exam in progress. Click Resume to continue." 
+                                        {isInProgress
+                                            ? "You have an exam in progress. Click Resume to continue."
                                             : "Exam window is now open"
                                         }
                                     </p>
@@ -389,12 +389,11 @@ export const EnrollmentCard = ({
                 >
                     {getButtonContent()}
                 </Button>
-                
+
                 {/* Status message below button */}
                 {statusMessage && (
-                    <p className={`text-[10px] text-center ${
-                        statusMessage.type === 'error' ? 'text-red-500' : 'text-slate-500'
-                    }`}>
+                    <p className={`text-[10px] text-center ${statusMessage.type === 'error' ? 'text-red-500' : 'text-slate-500'
+                        }`}>
                         {statusMessage.text}
                     </p>
                 )}

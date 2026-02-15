@@ -46,8 +46,8 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
 
     const isEnrolled = enrollmentStatus?.isEnrolled || false;
     const canStartExam = isEnrolled && isInExamWindow(data.examWindowStart, data.examWindowEnd);
-    const isExamDatePassed = isDatePassed(data.examDate);
-    const isRegistrationClosed = isDatePassed(data.registrationEndDate) || 
+    const isExamDatePassed = isDatePassed(data.examWindowEnd);
+    const isRegistrationClosed = isDatePassed(data.registrationEndDate) ||
         (data.status === 'closed' || data.status === 'completed' || data.status === 'live');
 
     // Check if user has already completed this competition
@@ -62,7 +62,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                 .eq('competition_id', data.id)
                 .eq('exam_type', 'competition')
                 .maybeSingle();
-            
+
             if (error) {
                 console.error("Error checking submission status:", error);
                 return null;
@@ -153,7 +153,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
     // Get primary button content and state
     const getPrimaryButton = () => {
         const isLoading = isCheckingEnrollment || isCheckingSubmission;
-        
+
         if (isLoading) {
             return (
                 <Button
@@ -209,11 +209,10 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                 <Button
                     onClick={handleStartExam}
                     disabled={isDisabled}
-                    className={`w-full h-11 font-bold text-base shadow-lg transition-all ${
-                        canStartExam 
+                    className={`w-full h-11 font-bold text-base shadow-lg transition-all ${canStartExam
                             ? "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-200"
                             : "bg-orange-400 text-white cursor-not-allowed"
-                    }`}
+                        }`}
                 >
                     {isStartingExam ? (
                         <>
@@ -266,7 +265,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
     // Get status message for below the button
     const getStatusMessage = () => {
         if (isCheckingEnrollment || isCheckingSubmission) return null;
-        
+
         if (isEnrolled && !canStartExam && !isExamCompleted && !isInProgress) {
             const examWindowStarted = isDatePassed(data.examWindowStart);
             if (!examWindowStarted) {
@@ -280,7 +279,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                 type: "info" as const
             };
         }
-        
+
         return null;
     };
 
@@ -380,7 +379,7 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
 
                     <div className="w-full space-y-2">
                         {getPrimaryButton()}
-                        
+
                         {/* Status message below button */}
                         {statusMessage && (
                             <p className="text-[10px] text-center text-slate-500">
