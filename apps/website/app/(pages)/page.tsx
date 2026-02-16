@@ -10,7 +10,7 @@ import { FinalCTASection } from "@/components/features/home/final-cta-section";
 export const metadata = {
   title: "Wisdom Abacus Academy | National Level Mental Math Competitions",
   description:
-    "Join India's premier Abacus platform. 5000+ students trust us for National Competitions and Mental Math courses. Register for Grade 1-6 today.",
+    "Join India's premier Abacus platform. 500+ students trust us for National Competitions and Mental Math courses. Register for Grade 1-6 today.",
 };
 
 export default async function HomePage() {
