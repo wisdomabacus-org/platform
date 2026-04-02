@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, Clock, Users, Loader2, LockKeyhole, CheckCircle2, Trophy, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,8 @@ interface EnrollmentCardProps {
     maxGrade: number;
     registrationEndDate?: string;
     competitionStatus?: string;
+    slug: string;
+    isResultsPublished: boolean;
 }
 
 export const EnrollmentCard = ({
@@ -47,7 +50,9 @@ export const EnrollmentCard = ({
     minGrade,
     maxGrade,
     registrationEndDate,
-    competitionStatus
+    competitionStatus,
+    slug,
+    isResultsPublished
 }: EnrollmentCardProps) => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuthStore();
@@ -155,6 +160,14 @@ export const EnrollmentCard = ({
 
         // Completed state (either user completed or exam date passed)
         if (isExamCompleted) {
+            if (isResultsPublished) {
+                return (
+                    <>
+                        <Trophy className="mr-2 h-5 w-5" />
+                        See Results
+                    </>
+                );
+            }
             return (
                 <>
                     <CheckCircle2 className="mr-2 h-5 w-5" />
@@ -202,7 +215,12 @@ export const EnrollmentCard = ({
                 );
             }
 
-            return (
+            return isResultsPublished ? (
+                <>
+                    <Trophy className="mr-2 h-5 w-5" />
+                    See Results
+                </>
+            ) : (
                 <>
                     <LockKeyhole className="mr-2 h-5 w-5" />
                     Registration Closed
@@ -220,16 +238,23 @@ export const EnrollmentCard = ({
 
     const isButtonDisabled = () => {
         if (isCheckingEnrollment || isCheckingSubmission || isProcessing || isStartingExam) return true;
-        // Disable if exam is completed (either by user or exam date passed)
-        if (isExamCompleted) return true;
+        // Disable if exam is completed and results NOT published (if published, it's a link)
+        if (isExamCompleted && !isResultsPublished) return true;
+        // If registration closed + exam passed + no results, disable
+        if (!isEnrolled && isRegistrationClosed && isExamDatePassed && !isResultsPublished) return true;
         // Disable Start Exam if user is enrolled but can't start (window not open)
-        if (isEnrolled && !canStartExam) return true;
-        // Disable if not enrolled (Start Exam button should be disabled with message)
-        if (!isEnrolled) return true;
+        if (isEnrolled && !canStartExam && !isExamCompleted) return true;
+        // Disable if not enrolled and registration closed (no results)
+        if (!isEnrolled && isRegistrationClosed && !isExamDatePassed) return true;
         return false;
     };
 
     const handleButtonClick = () => {
+        // If results are published and exam is completed or registration closed + exam passed, navigate to results
+        if (isResultsPublished && (isExamCompleted || (!isEnrolled && isRegistrationClosed && isExamDatePassed))) {
+            router.push(`/competitions/${slug}/results`);
+            return;
+        }
         if (isEnrolled && canStartExam) {
             handleStartExam();
         } else if (!isEnrolled && !isRegistrationClosed) {
@@ -238,6 +263,10 @@ export const EnrollmentCard = ({
     };
 
     const getButtonStyles = () => {
+        // Results available - purple gradient
+        if (isResultsPublished && (isExamCompleted || (!isEnrolled && isRegistrationClosed && isExamDatePassed))) {
+            return "w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all cursor-pointer";
+        }
         // Completed state - green
         if (isExamCompleted) {
             return "w-full h-14 text-lg font-bold bg-green-600 text-white cursor-default";

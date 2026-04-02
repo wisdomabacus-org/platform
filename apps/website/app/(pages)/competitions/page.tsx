@@ -10,7 +10,6 @@ export default async function CompetitionsListPage() {
   try {
     competitions = await getAllPublicCompetitionsServer({
       isPublished: true,
-      status: 'open'
     });
   } catch (error) {
     console.error("Failed to fetch competitions:", error);

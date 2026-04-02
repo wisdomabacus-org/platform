@@ -6,6 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Separator } from '@/shared/components/ui/separator';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/shared/components/ui/select';
+import { Switch } from '@/shared/components/ui/switch';
 import { format } from 'date-fns';
 import {
     Edit,
@@ -22,6 +30,8 @@ import {
     Award,
     BookOpen,
     BarChart3,
+    CheckCircle2,
+    AlertCircle,
 } from 'lucide-react';
 import { ROUTES } from '@/config/constants';
 import { cn } from '@/lib/utils';
@@ -118,6 +128,22 @@ export default function CompetitionDetailPage() {
         updateCompetition({
             id: id!,
             data: { status: newStatus },
+        });
+    };
+
+    const handleStatusChange = (newStatus: string) => {
+        if (!competition) return;
+        updateCompetition({
+            id: id!,
+            data: { status: newStatus },
+        });
+    };
+
+    const handleToggleResultsPublished = () => {
+        if (!competition) return;
+        updateCompetition({
+            id: id!,
+            data: { is_results_published: !competition.is_results_published },
         });
     };
 
@@ -326,28 +352,113 @@ export default function CompetitionDetailPage() {
                         </div>
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="rounded-md border p-4">
-                        <h4 className="mb-1 text-sm font-semibold">Quick Actions</h4>
-                        <p className="mb-3 text-xs text-muted-foreground">Common tasks for this competition</p>
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5"
-                                onClick={() => navigate(ROUTES.QUESTION_BANKS)}
+                    {/* Competition Management */}
+                    <div className="rounded-md border p-4 space-y-5">
+                        <div>
+                            <h4 className="mb-1 text-sm font-semibold">Competition Management</h4>
+                            <p className="text-xs text-muted-foreground">Change status and manage results</p>
+                        </div>
+
+                        {/* Status Changer */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md bg-muted/50 p-4">
+                            <div>
+                                <p className="text-sm font-medium">Competition Status</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    Controls what users see on the website
+                                </p>
+                            </div>
+                            <Select
+                                value={status}
+                                onValueChange={handleStatusChange}
+                                disabled={isUpdating}
                             >
-                                <FileQuestion className="h-3.5 w-3.5" />
-                                Assign Question Banks
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1.5">
-                                <Users className="h-3.5 w-3.5" />
-                                View Enrollments
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1.5">
-                                <Send className="h-3.5 w-3.5" />
-                                Send Notifications
-                            </Button>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue>
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={cn(
+                                                    'h-2 w-2 rounded-full',
+                                                    statusConfig.color.replace('text-', 'bg-')
+                                                )}
+                                            />
+                                            {statusConfig.label}
+                                        </div>
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                                        <SelectItem key={value} value={value}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn('h-2 w-2 rounded-full', config.color.replace('text-', 'bg-'))} />
+                                                <span>{config.label}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Publish Results Toggle */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md bg-muted/50 p-4">
+                            <div>
+                                <p className="text-sm font-medium flex items-center gap-2">
+                                    <Trophy className="h-4 w-4 text-purple-500" />
+                                    Publish Results
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {competition.is_results_published
+                                        ? 'Results are visible to students on the website'
+                                        : 'Results are hidden — toggle to make them public'}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Badge
+                                    variant="secondary"
+                                    className={cn(
+                                        'text-xs font-medium',
+                                        competition.is_results_published
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
+                                    )}
+                                >
+                                    {competition.is_results_published ? (
+                                        <><CheckCircle2 className="mr-1 h-3 w-3" /> Published</>
+                                    ) : (
+                                        <><AlertCircle className="mr-1 h-3 w-3" /> Not Published</>
+                                    )}
+                                </Badge>
+                                <Switch
+                                    checked={!!competition.is_results_published}
+                                    onCheckedChange={handleToggleResultsPublished}
+                                    disabled={isUpdating}
+                                />
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Quick Actions */}
+                        <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Quick Actions</p>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5"
+                                    onClick={() => navigate(ROUTES.QUESTION_BANKS)}
+                                >
+                                    <FileQuestion className="h-3.5 w-3.5" />
+                                    Assign Question Banks
+                                </Button>
+                                <Button variant="outline" size="sm" className="gap-1.5">
+                                    <Users className="h-3.5 w-3.5" />
+                                    View Enrollments
+                                </Button>
+                                <Button variant="outline" size="sm" className="gap-1.5">
+                                    <Send className="h-3.5 w-3.5" />
+                                    Send Notifications
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </TabsContent>

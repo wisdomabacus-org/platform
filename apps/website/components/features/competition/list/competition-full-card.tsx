@@ -141,13 +141,20 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
             case "live":
                 return { color: "bg-red-50 text-red-700 border-red-200", label: "Live Now", icon: CheckCircle2 };
             case "completed":
-                return { color: "bg-purple-50 text-purple-700 border-purple-200", label: "Completed", icon: Calendar };
+                return { color: "bg-purple-50 text-purple-700 border-purple-200", label: "Completed", icon: Trophy };
             default:
                 return { color: "bg-slate-50 text-slate-600 border-slate-200", label: "Unknown", icon: Info };
         }
     };
 
-    const statusConfig = getStatusConfig(data.status);
+    // Compute effective display status from dates to avoid stale DB status
+    const getEffectiveStatus = (): string => {
+        if (isExamDatePassed) return "completed";
+        if (isRegistrationClosed) return "closed";
+        return data.status;
+    };
+
+    const statusConfig = getStatusConfig(getEffectiveStatus());
     const StatusIcon = statusConfig.icon;
 
     // Get primary button content and state
@@ -168,6 +175,18 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
 
         // Completed state
         if (isExamCompleted) {
+            if (data.isResultsPublished) {
+                return (
+                    <Link href={`/competitions/${data.slug}/results`} className="w-full block">
+                        <Button
+                            className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
+                        >
+                            <Trophy className="mr-2 h-5 w-5" />
+                            See Results
+                        </Button>
+                    </Link>
+                );
+            }
             return (
                 <Button
                     disabled
@@ -256,6 +275,20 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
                         <Play className="mr-2 h-4 w-4" />
                         Start Exam
                     </Button>
+                );
+            }
+
+            // Exam date passed + results published → show See Results for non-enrolled users too
+            if (data.isResultsPublished) {
+                return (
+                    <Link href={`/competitions/${data.slug}/results`} className="w-full block">
+                        <Button
+                            className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
+                        >
+                            <Trophy className="mr-2 h-4 w-4" />
+                            See Results
+                        </Button>
+                    </Link>
                 );
             }
 

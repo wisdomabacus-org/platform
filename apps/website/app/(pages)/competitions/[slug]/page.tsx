@@ -107,6 +107,8 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
                 maxGrade={competition.maxGrade}
                 registrationEndDate={competition.registrationEndDate}
                 competitionStatus={competition.status}
+                slug={competition.slug}
+                isResultsPublished={competition.isResultsPublished}
               />
 
               <div className="text-center">
