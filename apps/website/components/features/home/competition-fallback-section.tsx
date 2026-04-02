@@ -2,8 +2,48 @@ import Link from "next/link";
 import { Trophy, ArrowRight, Bell, Sparkles, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getCompetitionResultsServer } from "@/services/competitions.service";
+import type { Competition } from "@/types/competition";
 
-export const CompetitionFallbackSection = () => {
+interface CompetitionFallbackSectionProps {
+    competition?: Competition;
+}
+
+export const CompetitionFallbackSection = async ({ competition }: CompetitionFallbackSectionProps) => {
+    // Fetch real leaderboard data if a competition is provided
+    let topPerformers: { rank: number; name: string; score: string; time: string }[] = [];
+    let competitionTitle = "Season 1";
+    let resultsLink = "/competitions";
+
+    if (competition) {
+        competitionTitle = competition.season ? `Season ${competition.season}` : competition.title;
+        resultsLink = `/competitions/${competition.slug}/results`;
+
+        try {
+            const results = await getCompetitionResultsServer(competition.id);
+            if (results && results.results.length > 0) {
+                topPerformers = results.results.slice(0, 3).map((entry) => {
+                    // Format time taken (seconds → Xm Ys)
+                    const mins = entry.timeTaken ? Math.floor(entry.timeTaken / 60) : 0;
+                    const secs = entry.timeTaken ? entry.timeTaken % 60 : 0;
+                    const timeStr = entry.timeTaken ? `${mins}m ${secs}s` : "—";
+
+                    return {
+                        rank: entry.rank,
+                        name: entry.studentName,
+                        score: `${entry.score}/${competition.totalMarks || 100}`,
+                        time: timeStr,
+                    };
+                });
+            }
+        } catch (error) {
+            console.warn("Failed to fetch leaderboard for fallback section:", error);
+        }
+    }
+
+    // If no real data available, show nothing in leaderboard (no fake data)
+    const hasLeaderboardData = topPerformers.length > 0;
+
     return (
         <section className="py-20 bg-[#121212] text-white relative overflow-hidden">
             {/* Background Ambience */}
@@ -13,12 +53,12 @@ export const CompetitionFallbackSection = () => {
             <div className="w-full lg:w-3/4 mx-auto px-4 relative z-10">
                 <div className="grid lg:grid-cols-2 gap-16 items-center">
 
-                    {/* LEFT: The "FOMO" (Past Winners) */}
+                    {/* LEFT: Past Winners */}
                     <div className="space-y-8">
                         <div>
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-orange-500/30 bg-orange-500/10 text-orange-400 text-xs font-bold uppercase tracking-wider mb-4">
                                 <Trophy className="h-3 w-3" />
-                                Season 1 Concluded
+                                {competitionTitle} Concluded
                             </div>
                             <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight">
                                 Champions of <br />
@@ -28,47 +68,50 @@ export const CompetitionFallbackSection = () => {
                             </h2>
                             <p className="text-slate-400 text-lg mt-4 max-w-md">
                                 The arena is quiet for now, but the glory remains.
-                                Meet the students who topped the charts in the last season.
+                                {hasLeaderboardData
+                                    ? " Meet the students who topped the charts."
+                                    : " Stay tuned for the next season."}
                             </p>
                         </div>
 
                         {/* Mini Leaderboard Preview */}
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
-                                <span className="text-xs font-bold text-slate-500 uppercase">Top Performers</span>
-                                <span className="text-xs font-bold text-orange-500 uppercase">Grade 4-6 Category</span>
-                            </div>
-                            <div className="space-y-4">
-                                {[
-                                    { rank: 1, name: "Aditya Kumar", score: "100/100", time: "12m 30s" },
-                                    { rank: 2, name: "Sia Sharma", score: "98/100", time: "11m 45s" },
-                                    { rank: 3, name: "Rahul V.", score: "96/100", time: "13m 10s" },
-                                ].map((winner, i) => (
-                                    <div key={i} className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-yellow-500 text-black' :
-                                                i === 1 ? 'bg-slate-300 text-black' :
-                                                    'bg-orange-700 text-white'
-                                                }`}>
-                                                {winner.rank}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-white group-hover:text-orange-400 transition-colors">{winner.name}</p>
-                                                <p className="text-xs text-slate-500">Time: {winner.time}</p>
+                        {hasLeaderboardData ? (
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+                                <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
+                                    <span className="text-xs font-bold text-slate-500 uppercase">Top Performers</span>
+                                    <span className="text-xs font-bold text-orange-500 uppercase">
+                                        Grade {competition?.minGrade}-{competition?.maxGrade}
+                                    </span>
+                                </div>
+                                <div className="space-y-4">
+                                    {topPerformers.map((winner, i) => (
+                                        <div key={i} className="flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-yellow-500 text-black' :
+                                                    i === 1 ? 'bg-slate-300 text-black' :
+                                                        'bg-orange-700 text-white'
+                                                    }`}>
+                                                    {winner.rank}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-white group-hover:text-orange-400 transition-colors">{winner.name}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-mono font-bold text-green-400">{winner.score}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-white/10 text-center">
+                                    <Link href={resultsLink} className="text-sm font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
+                                        View All Results <ArrowRight className="h-4 w-4" />
+                                    </Link>
+                                </div>
                             </div>
-                            <div className="mt-6 pt-4 border-t border-white/10 text-center">
-                                <Link href="/results" className="text-sm font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
-                                    View All Results <ArrowRight className="h-4 w-4" />
-                                </Link>
+                        ) : (
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm text-center">
+                                <Trophy className="h-10 w-10 text-orange-500/50 mx-auto mb-3" />
+                                <p className="text-slate-400 text-sm">Results will appear here once the competition concludes.</p>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* RIGHT: The "Lead Gen" (Waitlist) */}
@@ -80,7 +123,7 @@ export const CompetitionFallbackSection = () => {
                             </div>
 
                             <h3 className="text-3xl font-bold text-slate-900 mb-2">
-                                Don't Miss Season 2
+                                Don't Miss Next Season
                             </h3>
                             <p className="text-slate-600 mb-8">
                                 Registration for the next National Championship opens soon.

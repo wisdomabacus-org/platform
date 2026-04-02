@@ -16,7 +16,7 @@ export const FeaturedCompetitionSection = async () => {
         (competition.examWindowEnd && new Date(competition.examWindowEnd) < new Date());
 
     if (isCompetitionOver) {
-        return <CompetitionFallbackSection />;
+        return <CompetitionFallbackSection competition={competition} />;
     }
 
     // Helper to format date
