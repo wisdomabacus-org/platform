@@ -252,7 +252,11 @@ export const EnrollmentCard = ({
     const handleButtonClick = () => {
         // If results are published and exam is completed or registration closed + exam passed, navigate to results
         if (isResultsPublished && (isExamCompleted || (!isEnrolled && isRegistrationClosed && isExamDatePassed))) {
-            router.push(`/competitions/${slug}/results`);
+            if (!isAuthenticated || !user) {
+                openAuthModal("login");
+            } else {
+                router.push(`/competitions/${slug}/results`);
+            }
             return;
         }
         if (isEnrolled && canStartExam) {

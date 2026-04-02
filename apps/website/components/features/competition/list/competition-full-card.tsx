@@ -130,6 +130,15 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
         });
     };
 
+    const handleResultsClick = (e: React.MouseEvent) => {
+        if (!isAuthenticated || !user) {
+            e.preventDefault();
+            openAuthModal("login");
+        } else {
+            router.push(`/competitions/${data.slug}/results`);
+        }
+    };
+
     const getStatusConfig = (status: string) => {
         switch (status) {
             case "upcoming":
@@ -177,14 +186,13 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
         if (isExamCompleted) {
             if (data.isResultsPublished) {
                 return (
-                    <Link href={`/competitions/${data.slug}/results`} className="w-full block">
-                        <Button
-                            className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
-                        >
-                            <Trophy className="mr-2 h-5 w-5" />
-                            See Results
-                        </Button>
-                    </Link>
+                    <Button
+                        onClick={handleResultsClick}
+                        className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
+                    >
+                        <Trophy className="mr-2 h-5 w-5" />
+                        See Results
+                    </Button>
                 );
             }
             return (
@@ -281,14 +289,13 @@ export const CompetitionFullCard = ({ data }: { data: Competition }) => {
             // Exam date passed + results published → show See Results for non-enrolled users too
             if (data.isResultsPublished) {
                 return (
-                    <Link href={`/competitions/${data.slug}/results`} className="w-full block">
-                        <Button
-                            className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
-                        >
-                            <Trophy className="mr-2 h-4 w-4" />
-                            See Results
-                        </Button>
-                    </Link>
+                    <Button
+                        onClick={handleResultsClick}
+                        className="w-full h-11 font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 transition-all"
+                    >
+                        <Trophy className="mr-2 h-4 w-4" />
+                        See Results
+                    </Button>
                 );
             }
 
