@@ -10,6 +10,15 @@ export const FeaturedCompetitionSection = async () => {
         return <CompetitionFallbackSection />;
     }
 
+    // If the competition is completed or the exam window has passed, show fallback
+    const isCompetitionOver =
+        competition.status === 'completed' ||
+        (competition.examWindowEnd && new Date(competition.examWindowEnd) < new Date());
+
+    if (isCompetitionOver) {
+        return <CompetitionFallbackSection />;
+    }
+
     // Helper to format date
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("en-IN", {
